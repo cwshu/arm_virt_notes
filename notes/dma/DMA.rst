@@ -8,8 +8,7 @@ DMA Introduction
 
 - DMA 分為兩個種類
 
-  - standard DMA (DMA Controller): 有 central 的 DMA Controller, DMA Controller 會提供 control register 來讓 CPU 進行讀寫, 
-    用於指定 DMA copy 的記憶體位址.
+  - standard DMA (DMA Controller): 有 central 的 DMA Controller, DMA Controller 會提供 control register 來讓 CPU 進行讀寫, 用於指定 DMA copy 的記憶體位址.
   - bus mastering: CPU 跟每個 peripherals 都可以被授權來控制 memory bus. 因此 peripheral 能直接成為 bus master, 就能直接對 memory 進行讀寫.
 
 - DMA Controller Example
@@ -19,9 +18,8 @@ DMA Introduction
 
 - Bus Mastering Example
 
-  - PCI bus 就有提供 bus mastering 的技術, 估計目前 x86 PC 大多都是使用 PCI bus mastering 作為 DMA.
-  - AMBA bus AHB protocol.
-
+  - PCI bus
+  - AMBA AHB bus
 
 DMA on ARM platform
 -------------------
@@ -46,12 +44,12 @@ ARM specs:
 
   .. image:: img/arm_dma.png
 
-- linux kernel driver
+- linux kernel driver::
 
-  - include/linux/amba/bus.h
-  - include/linux/amba/pl330.h
-  - drivers/dma/pl330.c
-  - include/linux/amba/pl080.h
+    include/linux/amba/bus.h
+    include/linux/amba/pl330.h
+    drivers/dma/pl330.c
+    include/linux/amba/pl080.h
 
 - reference
 
