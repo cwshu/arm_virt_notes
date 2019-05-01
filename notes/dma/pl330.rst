@@ -1,0 +1,233 @@
+PL330 DMA Controller
+====================
+
+HW Spec
+-------
+
+- PL330 DMA Controller Manual: http://infocenter.arm.com/help/topic/com.arm.doc.ddi0424a/DDI0424A_dmac_pl330_r0p0_trm.pdf
+
+PL330 DMAC HW has 4 interface
+
+- APB interface: connected to AXI bus than connected to CPU. CPU programming MMIO by APB
+
+  - secure and Non-secure APB interface
+  - map IO register to memory, each APB allocate 4KB memory
+
+- interrupt output: connected to CPU. DMAC send completion interrupt by this
+- AXI master interface: connected to AXI bus. DMAC do a memory transfer by this. (issue load/store instruction)
+- peripheral request interface: connected to DMA-capable peripherals. To enable memory-to-peripheral DMA transfer and vice versa.
+
+DMA instruction set
+
+- DMAC includes small instruction set to specifying DMA operations flexibly.
+- greater flexibility than LLI(Linked-List Item) based DMAC.
+- variable-length instructions: minimize program memory.
+
+Func Overview
+
+- Instruction execute: DMAC has instruction processing block(HW): process code controls DMA transfer.
+- Memory: code is store in system memory, DMAC access memory by AXI interface.
+- Cache: DMAC temporarily store instructions in cache.
+- DMA Channel
+
+  - Each channel has single concurrent thread of DMA operations
+  - Each channel has single PC(Program Counter)
+
+- Instruction buffer: a DMA channel execute load/store instruction. DMAC add instruction to instruction storage buffer(queue), and then issuing instruction on AXI bus
+- Data buffer: DMAC use MFIFO(Multi First-In-First-Out) data buffer to store data it reads/writes.
+
+[Manual Ch4 DMA instruction set]
+
+- DMAADDH: set value(16-bits) of source/dest address register. used for memcpy
+- DMALD, DMALDP
+- DMAST, DMASTP
+
+- DMAEND: end signal that DMA seq is complete. end of DMA channel thread
+
+[Manual Ch2.3 Operating states]
+
+- PL330_STATE_FAULT_COMPLETING (DMAC state machine) 
+
+[Manual Ch3 Programmer Model, DMAC Register]
+
+- 4KB Memory split into 6 sections
+
+  - Control Registers
+  - DMA channel thread Status Register: 8 channel status + channel PC
+  - AXI and loop counter Status Register: loop counter 0 + 1 for 8 channels
+  - Debug Register
+  - Configuration Register: CR0 ~ 4, CRDn
+  - PrimeCell ID Register: periph_id_n, pcell_id_n
+
+Source Code
+-----------
+
+- drivers/dma/pl330.c
+
+- struct pl330_dmac:
+
+  - base // io register mem, readl(), writel(), devm_ioremap_resource()
+
+  - descriptor pool // resource pool 
+  - pcfg // config
+
+  - channels, manager // all channel threads and manager threads
+  - events // event/irq, _alloc_event(), 把 event 分給某個 dma thread
+
+  - mcode_cpu, mcode_bus // microcode buffer in cpu/bus address, dma_alloc_coherent() buffer
+
+- struct pl330_thread: pl330 DMA Channel thread
+- struct dma_pl330_chan
+
+  - inherit dma_chan
+  - 3 descriptor list: submitted, work, completed
+  - config: fifo_addr, burst, cyclic
+  - linux tasklet
+  - dmac, dma thread id
+
+- struct dma_pl330_desc
+
+  - inherit dma_async_tx_descriptor
+  - inherit list_head
+  - px // pl330_xfer
+  - rqcfg, rqdirection, peri (peripheral id)
+  - desc_status
+
+DMA Initial config/resource allocation
+
+- pl330_probe() => pl330_add()
+
+  - read_dmac_config()
+  - dmac_alloc_resource()
+  - pl330_dotask()
+
+Interrupt handling
+
+- pl330_irq_handler() => pl330_update()
+
+  - check FSM
+  - check FSC
+  - check ES(Event Status)
+
+    - clear interrupt
+    - detach the req, and _start() ??
+    - after _start(), set descriptor done ??
+
+5 API
+
+- Channel: pl330_request_channel: 
+
+  - 從 dma_device 下面 8 個 channel (pl330_thread) 找一個空缺的來初始化並回傳, 並從 8 個 event 找一個空缺的給該 channel thread 使用.
+
+- Config: 取出 src/dst addr, addr_width, max_burst, 放入 dma_pl330_chan 的 members 
+
+  - per DMA Channel 的 config
+
+- Prep descriptor: 把指令填入 dma_pl330_desc 的 px ( pl330_xfer ) 當中
+- Submit descriptor
+
+  - pl330_descriptor 是個 linked-list (many descriptors)
+  - 把整個 linked-list 放入 al330_chan 的 submitted_list 裏面.
+
+- Issue pending: 
+
+  - 把 submitted_list 裡的 descriptor 全部放入 work_list
+  - pl330_tasklet()
+
+    - 把 work_list 中 DONE status 的 desc 移到 completed_list
+    - fill_queue(): for desc in work_list: fill DMA instruction into microcode buffer
+    - _start(pch->thread) or _stop(pch->thread)
+    - // complete request
+    - 執行 completed_list 上 desc 的 callback
+    - 把 pch->completed_list 上的 desc, 設定成 free status 並回收回 dmac 的 desc_pool
+
+Start/Stop
+
+- _start => _trigger => enable interrupt, _emit_GO() + _execute_DBGINSN()
+- _stop => _emit_KILL() + _execute_DBGINSN()
+
+Fill DMA instructions:
+
+- fill_queue => pl330_submit_req => _setup_req => _setup_xfer => _setup_loops
+
+  - _setup_loop => _loop => _burst
+  - _burst =>
+
+    - _ldst_memtomem
+    - _ldst_devtomem
+    - _ldst_memtodev
+    - => _emit_<instr>
+
+  - req is a sequence of one or more xfer unit
+  - _prepare_ccr
+
+Execute Instruction
+
+- 1: _emit_<instr> + _execute_DBGINSN
+- 2: _emit_<instr> in microcode buffer, _start() pl330 thread
+
+- p.s. _emit_<instr>: _emit_LDP, _emit_KILL
+
+HW interface and Resource
+
+- iomem* base // IO Register base address
+
+  - devm_ioremap_resource()
+  - MMIO registers
+  
+    - Debug instr, cmd, status
+    - interrupt enable
+    - check, clear interrupt
+
+- mcbuf // microcode buffer
+
+  - dma_alloc_coherent()
+  - store DMA instruction
+
+- descriptor pool
+
+Misc
+~~~~
+
+Descriptor Pool
+
+- from dmac->desc_pool
+- pl330_get_desc(): allocate new desc of this channel.
+
+  - pluck_desc()
+  - dma_async_tx_descriptor_init()
+
+pl330_request_channel()
+
+- _manager_ns(): if manager thread is non-secure
+- _chan_ns(): pl330->pcfg.irq_ns
+- _alloc_event(): linear search pl330->events array, find empty event
+
+tiny functions, macros
+
+- _emit_LDP() => emit CMD_DMALDP. [Manual Ch4 DMA instruction set]
+- PL330_STATE_FAULT_COMPLETING (DMAC state machine) [Manual Ch2.3 Operating states]
+
+Linux Knowledge
+
+- list, container_of
+- tasklet
+- device resources: drivers/base/resources.c
+
+  - devm_kmalloc()
+  - devm_ioremap_resource()
+
+Prepare
+~~~~~~~
+
+tiny functions, macros
+
+- _emit_LDP() => emit CMD_DMALDP. [Manual Ch4 DMA instruction set]
+- PL330_STATE_FAULT_COMPLETING (DMAC state machine) [Manual Ch2.3 Operating states]
+
+load/store
+
+- _ldst_memtomem
+- _ldst_devtomem
+- _ldst_memtodev
+

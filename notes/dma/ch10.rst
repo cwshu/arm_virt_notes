@@ -1,0 +1,114 @@
+Ch10 Interrupt Handling
+=======================
+
+More: :doc:`ch10_more`
+
+Installing an Interrupt Handler
+-------------------------------
+
+Interrupt handler is similar to userspace signal handler.
+
+Driver install and uninstall interrupt handler by ``request_irq()`` and ``free_irq()``. (``include/linux/interrupt.h``)
+
+- ``request_irq()``
+
+  - ``flags``
+  
+    - SA_INTERRUPT: fast interrupt
+    - SA_SHIRQ: interrupt can be shared between devices
+    - SA_SAMPLE_RANDOM: interrupt can contribute the entropy poll for ``/dev/random`` and ``/dev/urandom``
+
+  - ``void *dev_id``: an unique id to index interrupt handler, use the pointer to driver's own private_data area.
+    For example, network drivers usually use ``struct netdev *`` as ``dev_id``.
+
+    It is used for shared interrupt lines. ``dev_id`` can be NULL if interrupt is not shared.
+
+    Interrupt handler will get ``dev_id`` as parameter, we can pass device context to handler by it.
+  
+- ``/proc/interrupts`` and ``/proc/stat``
+- Autodetecting the IRQ number
+
+  How to get IRQ number of device?
+
+  - some well-designed devices: read from PCI config space or status byte of device IO ports
+  - autoprobing: ``probe_irq_on()``, ``probe_irq_off()``. refer: https://elixir.free-electrons.com/linux/v4.13/source/include/linux/interrupt.h#L660
+  - [supplement] hard coding to SoC's device tree. We can get IRQ number of platform device by ``platform_get_irq()``
+
+Implementing a Handler
+----------------------
+
+Interrupt handler
+
+- clear "interrupt pending" bit of interface board. Sometimes handler does it at last instead of first. Some devices don't need it.
+- awake processes sleeping on the device.
+- interrupt handler should execute in a minimum amount of time.
+
+  - defer a long computation to tasklet or workqueue to schedule computation at safer time.
+
+- disable interrupt in the handler??
+
+Some restriction in the interrupt handler. They are same as kernel timer.
+
+- not execute in process context => can't transfer data to or from userspace.
+- can't sleep. like calling ``wait_event()``, allocate memory without ``GFP_ATOMIC``, and locking semaphore.
+- can't call ``schedule()``.
+
+Interrupt handler parameters and return value
+
+- parameters: irq number, ``dev_id``, and cpu registers
+
+  - ``dev_id``: device own private_data pointer, passed by ``request_irq()``.
+
+- return value: whether there was actually an interrupt to handle. ``IRQ_HANDLED`` or ``IRQ_NONE``
+
+Enable and Disable Interrupt
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+- disable single interrupt
+  
+  ::
+    
+    void disable_irq(int irq);
+    void disable_irq_nosync(int irq);
+    void enable_irq(int irq);
+
+  - disable interrupt for specific interrupt line.
+  - can't disable shared interrupt lines. (``SA_SHIRQ``)
+  - mask IRQ on PIC(Programmable Interrupt Controller), thus disable this IRQ on all processors.
+  - nested call: calling disable() 2 times needs 2 enable() call to reenable it.
+  - ``disable_irq_nosync()``:
+
+    ``disable_irq()`` should wait interrupt controller complete, and then disable interrupt.
+    It may deadlock if the thread calling ``disable_irq()`` hold the resource interrupt handler needs.
+    ``disable_irq_nosync()`` shouldn't wait. but it may cause race condition.
+    
+- disable all interrupt::
+
+    # disable interrupt but save their previous state. restore the previous interrupt state.
+    void local_irq_save(unsigned long flags);
+    void local_irq_restore(unsigned long flags);
+
+    # disable and enable interrupt on the current processor
+    void local_irq_disable(void);
+    void local_irq_enable(void);
+
+Top and Bottom Halves
+---------------------
+
+workqueue
+
+- http://kernel.meizu.com/linux-workqueue.html
+
+把 work 放進 workqueue 後, worker pool 就會安排 worker thread 一個一個執行 work.
+work 不使用 user context, 而用自己獨立的 workqueue context, 所以不能跟 userspace 交換資料.
+Linux 上 kthread 之中的 kworker 就是 workqueue 裡的 worker thread.
+
+跟 multi-thread 的程式之中, 把運算 offload 到 thread pool 上執行的概念相似. 只是 worker pool 跟 thread pool allocate cpu 的 policy 不同.
+(e.g. http server 收到 connection 後, 用 condition variable 叫醒 thread 幫忙 handle request.) 
+
+Interrupt Sharing
+-----------------
+
+Interrupt-Driven I/O
+--------------------
+
