@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU global var system_memory &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ivshmem" href="ivshmem.html" />
+    <link rel="prev" title="KVMMemoryListener" href="qemu_memory_kml.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-global-var-system-memory">
+<h1>QEMU global var <code class="docutils literal notranslate"><span class="pre">system_memory</span></code><a class="headerlink" href="#qemu-global-var-system-memory" title="Permalink to this headline">¶</a></h1>
+<p>source code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">exec</span><span class="o">.</span><span class="n">c</span>
+<span class="o">./</span><span class="n">memory</span><span class="o">.</span><span class="n">c</span>
+</pre></div>
+</div>
+<p>global variable:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">static</span> <span class="n">MemoryRegion</span> <span class="o">*</span><span class="n">system_memory</span><span class="p">;</span>
+<span class="mf">2.</span> <span class="n">AddressSpace</span> <span class="n">address_space_memory</span><span class="p">;</span>
+   <span class="n">extern</span> <span class="n">AddressSpace</span> <span class="n">address_space_memory</span><span class="p">;</span> <span class="o">//</span> <span class="ow">in</span> <span class="n">include</span><span class="o">/</span><span class="n">exec</span><span class="o">/</span><span class="n">address</span><span class="o">-</span><span class="n">spaces</span><span class="o">.</span><span class="n">h</span>
+<span class="mf">3.</span> <span class="n">static</span> <span class="n">QTAILQ_HEAD</span><span class="p">(,</span> <span class="n">AddressSpace</span><span class="p">)</span> <span class="n">address_spaces</span> <span class="o">=</span> <span class="n">QTAILQ_HEAD_INITIALIZER</span><span class="p">(</span><span class="n">address_spaces</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>set value:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="mf">1.</span> <span class="n">system_memory</span> <span class="o">&amp;&amp;</span> <span class="mf">2.</span> <span class="n">address_space_memory</span>
+<span class="n">static</span> <span class="n">void</span> <span class="n">memory_map_init</span><span class="p">(</span><span class="n">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">system_memory</span> <span class="o">=</span> <span class="n">g_malloc</span><span class="p">(</span><span class="n">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">system_memory</span><span class="p">));</span>
+    <span class="n">memory_region_init</span><span class="p">(</span><span class="n">system_memory</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">UINT64_MAX</span><span class="p">);</span>
+    <span class="n">address_space_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">address_space_memory</span><span class="p">,</span> <span class="n">system_memory</span><span class="p">,</span> <span class="s2">&quot;memory&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="o">//</span> <span class="mf">3.</span> <span class="n">address_spaces</span>
+<span class="o">//</span> <span class="n">當</span> <span class="n">AddressSpace</span> <span class="n">使用</span> <span class="n">address_space_init</span><span class="p">()</span> <span class="n">初始化自己時</span><span class="p">,</span> <span class="n">就會順便把自己放入</span> <span class="n">address_spaces</span> <span class="n">這個</span> <span class="n">Tail</span> <span class="n">Queue</span> <span class="n">當中</span>
+<span class="n">void</span> <span class="n">address_space_init</span><span class="p">(</span><span class="n">AddressSpace</span> <span class="o">*</span><span class="k">as</span><span class="p">,</span> <span class="n">MemoryRegion</span> <span class="o">*</span><span class="n">root</span><span class="p">,</span> <span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">name</span><span class="p">){</span>
+    <span class="o">//</span> <span class="n">init</span> <span class="n">code</span> <span class="n">of</span> <span class="k">as</span>
+        <span class="o">//</span> <span class="k">as</span><span class="o">-&gt;</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="o">//</span> <span class="k">as</span><span class="o">-&gt;</span><span class="n">current_map</span><span class="p">;</span> <span class="n">g_new</span><span class="p">()</span> <span class="o">+</span> <span class="n">flatview_init</span><span class="p">()</span>
+        <span class="o">//</span> <span class="o">...</span>
+
+    <span class="o">//</span> <span class="n">insert</span> <span class="k">as</span> <span class="n">to</span> <span class="n">Tail</span> <span class="n">Queue</span> <span class="n">address_spaces</span>
+    <span class="n">QTAILQ_INSERT_TAIL</span><span class="p">(</span><span class="o">&amp;</span><span class="n">address_spaces</span><span class="p">,</span> <span class="k">as</span><span class="p">,</span> <span class="n">address_spaces_link</span><span class="p">);</span>
+
+    <span class="n">memory_region_update_pending</span> <span class="o">|=</span> <span class="n">root</span><span class="o">-&gt;</span><span class="n">enabled</span><span class="p">;</span>
+    <span class="n">memory_region_transaction_commit</span><span class="p">();</span>
+<span class="p">}</span>
+<span class="n">AddressSpace</span> <span class="o">*</span><span class="n">address_space_init_shareable</span><span class="p">(</span><span class="n">MemoryRegion</span> <span class="o">*</span><span class="n">root</span><span class="p">,</span> <span class="n">const</span> <span class="n">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
+
+<span class="n">void</span> <span class="n">address_space_destroy</span><span class="p">(</span><span class="n">AddressSpace</span> <span class="o">*</span><span class="k">as</span><span class="p">):</span>
+</pre></div>
+</div>
+<p>get value:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// 1. system_memory
+MemoryRegion *get_system_memory(void){
+    return system_memory;
+}
+void cpu_exec_init(CPUState *cpu, Error **errp){
+    cpu-&gt;memory = system_memory;
+}
+
+// 2. address_space_memory
+void cpu_physical_memory_rw(hwaddr addr, uint8_t *buf, int len, int is_write){
+    address_space_rw(&amp;address_space_memory, addr, MEMTXATTRS_UNSPECIFIED, buf, len, is_write);
+}
+void cpu_flush_icache_range(hwaddr start, int len);
+    // calls cpu_physical_memory_write_rom_internal()
+cpu_physical_memory_map()/cpu_physical_memory_unmap(): address_space_map/unmap(&amp;address_space_memory)
+
+bool cpu_physical_memory_is_io(hwaddr phys_addr){
+    MemoryRegion mr = address_space_translate(&amp;address_space_memory, phys_addr, &amp;phys_addr, &amp;l, false);
+    return !(memory_region_is_ram(mr) || memory_region_is_romd(mr));
+}
+// 看起來操作 address_space_memory 的函式, 基本上都是操作 struct AddressSpace 的函式的再包裝, 而且大部份都有使用
+// AddressSpace to MemoryRegion 的 API: address_space_translate()
+
+// 3. address_spaces
+// QTAILQ_FOREACH + address_spaces
+static AddressSpace *memory_region_to_address_space(MemoryRegion *mr)
+void memory_region_transaction_commit(void);
+void memory_region_sync_dirty_bitmap(MemoryRegion *mr);
+static void memory_region_update_coalesced_range(MemoryRegion *mr);
+
+void memory_listener_register(MemoryListener *listener, AddressSpace *filter);
+
+void mtree_info(fprintf_function mon_printf, void *f);
+
+// 4. struct AddressSpace API
+</pre></div>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>address_space_memory: 是系統 memory 用的 AddressSpace</p>
+<ul>
+<li><p>address_space_rw() parameter: 當 MMIO 發生時, 會從 address_space_memory 搜尋對應的 MemoryRegion</p></li>
+</ul>
+</li>
+<li><p>system_memory: 是系統 memory 的 root MemoryRegion</p>
+<ul>
+<li><p>memory_region_add_subregion_*() parameter: device 產生 MMIO 的 MemoryRegion, 會放入 system_memory 當中</p></li>
+</ul>
+</li>
+<li><p>address_spaces: 是所有 AddressSpace 的集合, 包含 address_space_memory</p>
+<ul>
+<li><p>address_space_init(): 當 AddressSpace init 時, 就會被放入 address_spaces.</p></li>
+<li><p>memory_region_to_address_space(): 尋找 MemoryRegion 隸屬的 AddressSpace, 會從 address_spaces 做搜尋.</p></li>
+</ul>
+</li>
+<li><p>memory_listeners</p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU global var <code class="docutils literal notranslate"><span class="pre">system_memory</span></code></a><ul>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/system_memory.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

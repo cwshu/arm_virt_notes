@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>KVM source code resource &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Linux Kernel Event Tracing in KVM" href="tracepoint.html" />
+    <link rel="prev" title="Oenhan KVM note" href="oenhen_part2_3.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="kvm-source-code-resource">
+<h1>KVM source code resource<a class="headerlink" href="#kvm-source-code-resource" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="resource">
+<h2>resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.oenhan.com/kvm-src-1">KVM源代码分析 1</a></p>
+<ul>
+<li><p>5 篇系列文: basic, kvm_run, cpu, memory, IO</p></li>
+<li><p><a class="reference external" href="http://www.oenhan.com/qemu-monitor-savevm-loadvm">QEMU monitor savevm loadvm 源代码分析</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://people.cs.nctu.edu.tw/~chenwj/dokuwiki/doku.php?id=kvm">chenwj’s wiki - KVM</a></p>
+<ul>
+<li><p>cpu: VMCS, kvm, kvm_arch, kvm_vcpu, kvm_vcpu_arch, kvm_ioapic, kvm_lapic</p>
+<ul>
+<li><p>kernel module init: vmx_init -&gt; kvm_init -&gt; kvm_arch_init</p>
+<ul>
+<li><p>kvm_arch_hardware_setup, setup_vmcs_config, alloc_kvm_area</p></li>
+</ul>
+</li>
+<li><p>設定 VMCS</p></li>
+<li><p>running guest OS</p></li>
+<li><p>emulate guest OS instruction</p></li>
+</ul>
+</li>
+<li><p>memory: shadow page table, EPT</p></li>
+<li><p>IO</p></li>
+<li><p>live migration</p></li>
+<li><p>clock</p></li>
+<li><p>QEMU</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://blog.vmsplice.net">Stefan Hajnoczi - Open source and virtualization blog</a></p></li>
+<li><p><a class="reference external" href="http://royluo.org/2017/07/12/index/">RoyLuo’s Notes - Blog索引</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">KVM source code resource</a><ul>
+<li><a class="reference internal" href="#resource">resource</a></li>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/kvm_resources.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

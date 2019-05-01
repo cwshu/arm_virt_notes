@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU Memory Management &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="KVMMemoryListener" href="qemu_memory_kml.html" />
+    <link rel="prev" title="QEMU GLib dependencies" href="qemu_glib.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-memory-management">
+<h1>QEMU Memory Management<a class="headerlink" href="#qemu-memory-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="mmio-exit-handling">
+<h2>MMIO exit handling<a class="headerlink" href="#mmio-exit-handling" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>KVM exit: QEMU get return from KVM <code class="docutils literal notranslate"><span class="pre">ioctl()</span></code> syscall, and use <code class="docutils literal notranslate"><span class="pre">address_space_rw()</span></code> to handle MMIO exit.
+[at <code class="docutils literal notranslate"><span class="pre">kvm_cpu_exec()</span> <span class="pre">in</span> <span class="pre">./kvm-all.c</span></code>.]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">address_space_rw()</span></code>: <code class="docutils literal notranslate"><span class="pre">AddressSpace</span></code> dispatch MMIO exit to specific <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> based on <code class="docutils literal notranslate"><span class="pre">hwaddr</span></code></p>
+<ul>
+<li><p>Control flow (MMIO write):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="n">address_space_rw</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">address_space_write</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">address_space_write_continue</span><span class="p">()</span> <span class="o">=&gt;</span>
+<span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="n">memory_region_dispatch_write</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">access_with_adjusted_size</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">memory_region_write_accessor</span><span class="p">()</span> <span class="o">=&gt;</span>
+<span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="n">MemoryRegion</span> <span class="n">mr</span><span class="p">;</span> <span class="n">mr</span><span class="o">-&gt;</span><span class="n">ops</span><span class="o">-&gt;</span><span class="n">write</span><span class="p">(</span> <span class="o">...</span> <span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>how to find specific <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> by guest addr: <code class="docutils literal notranslate"><span class="pre">address_space_translate()</span></code></p></li>
+<li><p>source: <code class="docutils literal notranslate"><span class="pre">memory.c</span></code>, <code class="docutils literal notranslate"><span class="pre">exec.c</span></code></p></li>
+</ul>
+</li>
+<li><p>example for device MemoryRegion-&gt;write() [not finish]</p>
+<ul class="simple">
+<li><p>ivshmem_bar0</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="memorylistener-and-memoryregion-transaction">
+<span id="mr-transaction"></span><h2>MemoryListener and MemoryRegion transaction<a class="headerlink" href="#memorylistener-and-memoryregion-transaction" title="Permalink to this headline">¶</a></h2>
+<p>當 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 被加入或移出 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> tree 時. QEMU 會透過 <code class="docutils literal notranslate"><span class="pre">MemoryListener</span></code> 去更新 guest OS 的 memory. 這個更新過程叫作 MemoryRegion transaction.</p>
+<ul>
+<li><p>簡稱</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code>: MR</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MemoryRegionSection</span></code>: MRS</p></li>
+</ul>
+</li>
+<li><p>MemoryListener API:</p>
+<ul class="simple">
+<li><p>每次 memory 的更新範圍為一組 <code class="docutils literal notranslate"><span class="pre">(start,</span> <span class="pre">len)</span></code>, 包裝成 MRS 的型態.
+region_add()/region_del() 分別為新增(更新)跟刪除這段 memory.</p></li>
+<li><p>API: <code class="docutils literal notranslate"><span class="pre">region_add(MemoryListener</span> <span class="pre">*listener,</span> <span class="pre">MemoryRegionSection</span> <span class="pre">*section)</span></code></p></li>
+<li><p>舉例來說, <a class="reference internal" href="qemu_memory_kml.html"><span class="doc">KVMMemoryListener</span></a> 就會透過 KVM API 去更新 guest OS 的 memory.</p></li>
+</ul>
+</li>
+<li><p>MemoryRegion transaction: <code class="docutils literal notranslate"><span class="pre">memory_region_transaction_commit()</span></code></p>
+<ul class="simple">
+<li><p>當 MR tree 新增/刪除 node 時, 會 commit 一個 MR transaction, 來更新 MR tree 對應到的 <code class="docutils literal notranslate"><span class="pre">AddressSpace</span></code>.</p></li>
+<li><p>MR transaction 更新方式: 讓該 <code class="docutils literal notranslate"><span class="pre">AddressSpace</span></code> 產生新的 <code class="docutils literal notranslate"><span class="pre">FlatView</span></code>,
+並跟上次 commit 的 <code class="docutils literal notranslate"><span class="pre">FlatView</span></code> 比較 memory 的差異,
+把這些 memory 差異 (包裝成 MRS 型態), 透過 MemoryListener 更新到 guest OS 的 memory 上.</p></li>
+<li><p>MR transaction 會更新每個 <code class="docutils literal notranslate"><span class="pre">AddressSpace</span></code>.</p></li>
+<li><p>MR transaction 會呼叫 <code class="docutils literal notranslate"><span class="pre">AddressSpace</span></code> 之中每個 <code class="docutils literal notranslate"><span class="pre">MemoryListener</span></code> 各自更新一次.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memory_region_transaction_commit()</span></code> source analysis.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>memory_region_transaction_commit()
+  MEMORY_LISTENER_CALL_GLOBAL(begin, Forward);
+  foreach(as: address_spaces): address_space_update_topology(as);
+  MEMORY_LISTENER_CALL_GLOBAL(commit, Forward);
+
+address_space_update_topology(AddressSpace as)
+  # old FlatView (previous rendering version)
+  FlatView old_view = as-&gt;current_map;
+  # rendering new FlatView - render_memory_region()
+  FlatView new_view = generate_memory_topology(as-&gt;root);
+
+  address_space_update_topology_pass(as, old_view, new_view, false); // adding=false
+  address_space_update_topology_pass(as, old_view, new_view, true);  // adding=true
+
+address_space_update_topology_pass()
+  // update topology:
+  //   delete (old_view - new_view)
+  //   update (intersect(old_view, new_view))
+  //   add    (new_view - old_view)
+  // FlatView fr; (FlatView has fr-&gt;nr FlatRange. The ith FlatRange is accessed by fr-&gt;ranges[i])
+
+  while(iold &lt; old_view-&gt;nr || inew &lt; new_view-&gt;nr)
+    1. if(!adding) MEMORY_LISTENER_UPDATE_REGION(frold, as, Reverse, region_del); // iold++;
+    2. if(adding)  MEMORY_LISTENER_UPDATE_REGION(frnew, as, Forward, region_nop); // inew++; iold++;
+    3. if(adding)  MEMORY_LISTENER_UPDATE_REGION(frnew, as, Forward, region_add); // inew++;
+
+MEMORY_LISTENER_UPDATE_REGION()
+  MEMORY_LISTENER_UPDATE_REGION(..., region_add) calls MemoryListener-&gt;region_add
+  MEMORY_LISTENER_UPDATE_REGION(..., region_del) calls MemoryListener-&gt;region_del
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="section" id="misc">
+<h3>misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>global memory listeners</p>
+<ul>
+<li><p>a global list: <code class="docutils literal notranslate"><span class="pre">memory_listeners</span></code></p></li>
+<li><p>call by <code class="docutils literal notranslate"><span class="pre">MEMORY_LISTENER_CALL_GLOBAL()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="note-of-global-variable">
+<h2>Note of global variable<a class="headerlink" href="#note-of-global-variable" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>global variable <code class="docutils literal notranslate"><span class="pre">address_space_memory</span></code> is guest physical address space,
+<code class="docutils literal notranslate"><span class="pre">system_memory</span></code> is root MemoryRegion of <code class="docutils literal notranslate"><span class="pre">address_space_memory</span></code></p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">static</span> <span class="n">MemoryRegion</span> <span class="o">*</span><span class="n">system_memory</span><span class="p">;</span>       <span class="o">//</span> <span class="n">root</span> <span class="n">MemoryRegion</span> <span class="n">of</span> <span class="n">address_space_memory</span>
+<span class="mf">2.</span> <span class="n">AddressSpace</span> <span class="n">address_space_memory</span><span class="p">;</span>        <span class="o">//</span> <span class="n">default</span> <span class="n">memory</span> <span class="n">space</span>
+   <span class="n">extern</span> <span class="n">AddressSpace</span> <span class="n">address_space_memory</span><span class="p">;</span> <span class="o">//</span> <span class="ow">in</span> <span class="n">include</span><span class="o">/</span><span class="n">exec</span><span class="o">/</span><span class="n">address</span><span class="o">-</span><span class="n">spaces</span><span class="o">.</span><span class="n">h</span>
+
+<span class="mf">3.</span> <span class="n">static</span> <span class="n">QTAILQ_HEAD</span><span class="p">(,</span> <span class="n">AddressSpace</span><span class="p">)</span> <span class="n">address_spaces</span> <span class="o">=</span> <span class="n">QTAILQ_HEAD_INITIALIZER</span><span class="p">(</span><span class="n">address_spaces</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="more">
+<h2>More<a class="headerlink" href="#more" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="mmio-exit">
+<h3>MMIO exit<a class="headerlink" href="#mmio-exit" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>emulation of trap:</p>
+<ul>
+<li><p>2 cases</p>
+<ol class="arabic">
+<li><p>ram case - use <code class="docutils literal notranslate"><span class="pre">memcpy()</span></code> to emulate:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ptr</span> <span class="o">=</span> <span class="n">qemu_map_ram_ptr</span><span class="p">(</span><span class="n">mr</span><span class="o">-&gt;</span><span class="n">ram_block</span><span class="p">,</span> <span class="n">addr1</span><span class="p">);</span> <span class="o">//</span> <span class="n">get</span> <span class="n">RAM</span> <span class="n">backend</span> <span class="kn">from</span> <span class="nn">MR</span><span class="s1">&#39;s RAMBlock</span>
+<span class="n">memcpy</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">l</span><span class="p">);</span>
+<span class="n">invalidate_and_set_dirty</span><span class="p">(</span><span class="n">mr</span><span class="p">,</span> <span class="n">addr1</span><span class="p">,</span> <span class="n">l</span><span class="p">);</span>
+
+<span class="c1"># ram case?</span>
+<span class="c1"># memory_access_is_direct(mr, true)</span>
+<span class="c1">#   in write case: mr-&gt;ram &amp;&amp; !mr-&gt;readonly &amp;&amp; !mr-&gt;ram_device</span>
+<span class="c1">#   in read case: (mr-&gt;rom_device || mr-&gt;romd_mode) || (mr-&gt;ram &amp;&amp; !mr-&gt;ram_device)</span>
+</pre></div>
+</div>
+</li>
+<li><p>other case - <code class="docutils literal notranslate"><span class="pre">memory_region_dispatch_write()</span></code></p></li>
+</ol>
+</li>
+<li><p>at <code class="docutils literal notranslate"><span class="pre">address_space_write_continue()</span></code></p></li>
+<li><p>3 kind of accessor: mmio, mmio_with_attrs, oldmmio</p></li>
+<li><p>wrappers of mr-&gt;op-&gt;write(), write_with_attrs() …</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">address_space_translate()</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">AddressSpace,</span> <span class="pre">AddressSpaceDispatch,</span> <span class="pre">MemoryRegion;</span></code></p></li>
+<li><p>address_space_translate() =&gt; address_space_translate_internal() =&gt; address_space_lookup_region() =&gt; phys_page_find()</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AddressSpaceDispatch</span></code> and <code class="docutils literal notranslate"><span class="pre">PhysPageMap</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AddressSpaceDispatch</span></code></p>
+<ul class="simple">
+<li><p>PhysPageMap, PhysPageEntry, Node(PhysPageEntry[1024])</p></li>
+<li><p>PhysPageEntry: skip, ptr</p></li>
+<li><p>PhysPageMap: MemoryRegionSection*, Node*</p></li>
+<li><p>4 layer page table in PhysPageMap, each entry is PhysPageEntry ??</p></li>
+<li><p>PhysPageEntry array is indexed by hwaddr</p></li>
+<li><p>PhysPageEntry.ptr 跟 PhysPageMap.section[section_nb] 裡的 section_nb 有關</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="other">
+<h3>other<a class="headerlink" href="#other" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>RAMBlock &amp; RAMList</p>
+<ul>
+<li><p>ram_addr_t is a namespace different to GPA. it depends on the order RAMBlock is created. (index RAMBlock)</p></li>
+<li><p>global list RAMList ram_list is hold all RAMBlock and dirty memory bitmaps.</p></li>
+<li><p>RAMBlock</p>
+<ul>
+<li><p>anonymous mmap and file-backed mmap.</p></li>
+<li><p>file-backed mmap can be used for hugetlbfs or shared memory between host/guest.</p></li>
+<li><p>qemu_ram_alloc*()</p></li>
+<li><p>qemu_ram_set_idstr() // set, get, unset</p></li>
+<li><p>qemu_get_ram_block() // ram_addr_t =&gt; RAMBlock*</p></li>
+<li><p>qemu_ram_resize()</p></li>
+<li><p>ram_block_add()</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[MemoryRegion]</span></code> some callers of <code class="docutils literal notranslate"><span class="pre">memory_region_init()</span></code></p>
+<ul>
+<li><p>vga_init() =&gt; memory_region_add_subregion_overlap() =&gt; memory_region_transaction_commit() =&gt; KVM API update guest address.</p></li>
+<li><p>[?] pci_host_config_write_common() =&gt; e1000_write_config() =&gt; pci_default_write_config() =&gt; pci_update_mapping() / memory_region_set_enabled() =&gt; KVM API …</p></li>
+<li><p>vga_update_memory_access() =&gt; memory_region_add_subregion_overlap() =&gt; …</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="qemu-memory-doc">
+<h2>QEMU memory doc<a class="headerlink" href="#qemu-memory-doc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://blog.vmsplice.net/2016/01/qemu-internals-how-guest-physical-ram.html">Stefan Hajnoczi - QEMU Internals: How guest physical RAM works</a></p>
+<ul>
+<li><p><a class="reference external" href="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/entry/20160921?lang=en">中譯</a></p></li>
+<li><p>AddressSpace/MemoryRegion</p>
+<ul>
+<li><p>memory space and I/O space are both represented by AddressSpace</p></li>
+<li><p>AddressSpace containes tree of MemoryRegion</p></li>
+<li><p>MemoryRegion: link between guest physical address space (<code class="docutils literal notranslate"><span class="pre">hwaddr</span></code>) and the <code class="docutils literal notranslate"><span class="pre">RAMBlocks</span></code> containing the memory.</p></li>
+<li><p>MemoryRegion also represents I/O memory, which containes callback(read/write), that is invoked on access.</p></li>
+</ul>
+</li>
+<li><p>RAMBlocks and ram_addr_t address space</p>
+<ul>
+<li><p>each RAMBlock has pointer to <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> memory and ram_addr_t offset. (<code class="docutils literal notranslate"><span class="pre">mmap()</span></code> by <code class="docutils literal notranslate"><span class="pre">qemu_ram_alloc()</span></code>)</p></li>
+<li><p>global variable RAMList ram_list. it holds all RAMBlocks and dirty memory bitmaps</p></li>
+</ul>
+</li>
+<li><p>hotpluggable guest memory: pc-dimm [1] device</p></li>
+<li><p>memory-backend device</p></li>
+<li><p>dirty memory tracking (bitmaps in RAMList): used by live migration, QEMU TCG handling SMC code … etc.</p></li>
+<li><p>[1] DIMM means Dual In-Line Memory Module, is used in system memory in our PC.</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://lxr.missinglinkelectronics.com/qemu+v2.8.0/docs/memory.txt">QEMU docs/memory.txt</a></p>
+<ul>
+<li><p>MemoryRegion types: RAM, MMIO, ROM, ROM device, IOMMU region, container, alias, reservation region.</p></li>
+<li><p>MemoryRegion lifecycle:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">memory_region_init*()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memory_region_{add,del}_subregion()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">object_unparent()</span></code>, region attributes</p></li>
+</ul>
+</li>
+<li><p>Overlapping regions and priority</p></li>
+<li><p>Visibility of MemoryRegion</p></li>
+<li><p>[MMIO Operations] various contraint can be supplied to control how read()/write() callback is called</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://www.cnblogs.com/wuchanming/p/4732604.html">QEMU 对虚机的地址空间管理</a></p>
+<ul>
+<li><p>pci_update_mapping()</p></li>
+<li><p>qemu_mutex_lock_iothread()</p></li>
+<li><p>memory_region_transaction_{begin,commit}()</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://people.cs.nctu.edu.tw/~chenwj/dokuwiki/doku.php?id=qemu#memory">QEMU Memory</a></p>
+<ul>
+<li><p>RAMBlock and RAMList</p></li>
+<li><p>PhysPageDesc</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://people.cs.nctu.edu.tw/~chenwj/dokuwiki/doku.php?id=qemu#software_mmu">QEMU SoftMMU</a></p></li>
+<li><p>[example] <a class="reference external" href="http://blog.csdn.net/dashulu/article/details/17090293">http://blog.csdn.net/dashulu/article/details/17090293</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU Memory Management</a><ul>
+<li><a class="reference internal" href="#mmio-exit-handling">MMIO exit handling</a></li>
+<li><a class="reference internal" href="#memorylistener-and-memoryregion-transaction">MemoryListener and MemoryRegion transaction</a><ul>
+<li><a class="reference internal" href="#misc">misc</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#note-of-global-variable">Note of global variable</a></li>
+<li><a class="reference internal" href="#more">More</a><ul>
+<li><a class="reference internal" href="#mmio-exit">MMIO exit</a></li>
+<li><a class="reference internal" href="#other">other</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qemu-memory-doc">QEMU memory doc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_memory.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

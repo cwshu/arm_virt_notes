@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>IRQFD &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="irqfd">
+<h1>IRQFD<a class="headerlink" href="#irqfd" title="Permalink to this headline">¶</a></h1>
+<p>IRQFD: eventfd handled at kernel, kernel use <code class="docutils literal notranslate"><span class="pre">wait_queue</span></code> and <code class="docutils literal notranslate"><span class="pre">kvm_set_irq()</span></code> to inject IRQ to VM.</p>
+<p>APIs:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">KVM</span> <span class="n">VM</span> <span class="n">ioctl</span> <span class="o">-</span> <span class="n">KVM_IRQFD</span>
+<span class="o">-</span> <span class="n">KVM</span> <span class="n">VM</span> <span class="n">ioctl</span> <span class="o">-</span> <span class="n">KVM_IOEVENTFD</span>
+<span class="o">-</span> <span class="n">QEMU</span> <span class="n">kvm</span><span class="o">-</span><span class="nb">all</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="n">kvm_irqchip_assign_irqfd</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">QEMU</span> <span class="n">kvm</span><span class="o">-</span><span class="nb">all</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="n">kvm_set_ioeventfd_mmio</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">QEMU</span> <span class="n">kvm</span><span class="o">-</span><span class="nb">all</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="n">kvm_set_ioeventfd_pio</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="section" id="source-analysis">
+<h2>source analysis<a class="headerlink" href="#source-analysis" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">kvm_arch_set_irq_inatomic</span><span class="p">()</span>
+
+<span class="o">//</span> <span class="n">workqueue</span>
+<span class="n">work_struct</span>
+<span class="n">INIT_WORK</span><span class="p">()</span>
+<span class="n">schedule_work</span><span class="p">()</span>
+<span class="n">flush_work</span><span class="p">()</span>
+<span class="n">queue_work</span><span class="p">()</span>
+
+<span class="o">//</span> <span class="n">wait</span> <span class="n">queue</span>
+<span class="n">wait_queue_t</span>
+<span class="n">init_waitqueue_func_entry</span><span class="p">()</span>
+
+<span class="n">eventfd_ctx_remove_wait_queue</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>wait queue: irqfd_wakeup()</p>
+<blockquote>
+<div><p>POLLIN: run workqueue irqfd-&gt;inject
+POLLHUP: irqfd_deactivate()</p>
+</div></blockquote>
+<p>work queue: irqfd_inject()</p>
+<blockquote>
+<div><p>kvm_set_irq()
+IRQ resampler</p>
+</div></blockquote>
+<p>work queue: irqfd_shutdown()</p>
+<blockquote>
+<div><p>remove evenfd from wait_queue
+flush_work() irqfd-&gt;inject</p>
+</div></blockquote>
+</div>
+<div class="section" id="reference">
+<h2>reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://blog.allenx.org/2015/07/05/kvm-irqfd-and-ioeventfd">gaowanlong - KVM irqfd and ioeventfd</a></p>
+<ul>
+<li><p><a class="reference external" href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=d34e6b175e61821026893ec5298cc8e7558df43a">ioeventfd patch</a></p></li>
+<li><p><a class="reference external" href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3">irqfd patch</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">IRQFD</a><ul>
+<li><a class="reference internal" href="#source-analysis">source analysis</a></li>
+<li><a class="reference internal" href="#reference">reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/irqfd.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

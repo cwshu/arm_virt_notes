@@ -1,0 +1,392 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>STMicro ethernet driver note &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="STMicro ethernet driver note 2" href="stmmac_note2.html" />
+    <link rel="prev" title="Platform Device, Device Tree, and Open Firmware" href="platform_dtb.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="stmicro-ethernet-driver-note">
+<h1>STMicro ethernet driver note<a class="headerlink" href="#stmicro-ethernet-driver-note" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/latest/source/Documentation/networking/stmmac.txt">Linux Kernel - Documentation/networking/stmmac.txt</a></p></li>
+</ul>
+<div class="section" id="source-file-and-config">
+<h2>Source File and Config<a class="headerlink" href="#source-file-and-config" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">stmmac</span></code> source code files introduction.</p>
+<p>interface to upper layer:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>stmmac_main.o: <code class="docutils literal notranslate"><span class="pre">stmmac_netdev_ops</span></code></p></li>
+<li><p>stmmac_ethtool.o: <code class="docutils literal notranslate"><span class="pre">stmmac_ethtool_ops</span></code></p></li>
+</ul>
+</div></blockquote>
+<p>internal operations:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>dwmac: <code class="docutils literal notranslate"><span class="pre">stmmac_ops</span></code>, <code class="docutils literal notranslate"><span class="pre">stmmac_dma_ops</span></code></p>
+<ul>
+<li><p>dwmac_lib.o</p></li>
+<li><p>dwmac1000: dwmac1000_core.o dwmac1000_dma.o</p></li>
+<li><p>dwmac100: dwmac100_core.o dwmac100_dma.o</p></li>
+</ul>
+</li>
+<li><p>norm_desc.o, enh_desc.o: dma descriptor, <code class="docutils literal notranslate"><span class="pre">stmmac_desc_ops</span></code></p></li>
+<li><p>ring_mode.o, chain_mode.o: <code class="docutils literal notranslate"><span class="pre">stmmac_mode_ops</span></code></p></li>
+<li><p>other: stmmac_mdio.o, mmc_core.o, stmmac_hwtstamp.o, stmmac_ptp.o</p></li>
+</ul>
+</div></blockquote>
+<p>Kconfig options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>bus: <code class="docutils literal notranslate"><span class="pre">stmmac_pci.c</span> <span class="pre">|</span> <span class="pre">stmmac_platform.c</span></code></p>
+<ul>
+<li><p>stmmac_platform.c (struct platform_driver stmmac_pltfr_driver)</p></li>
+</ul>
+</li>
+<li><p>dwmac: <code class="docutils literal notranslate"><span class="pre">dwmac-meson.c</span> <span class="pre">|</span> <span class="pre">dwmac-sunxi.c</span> <span class="pre">|</span> <span class="pre">dwmac-sti.c</span></code></p></li>
+</ul>
+</div></blockquote>
+<p>header files</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>stmmac.h, common.h</p></li>
+<li><p>descs.h, descs_com.h (dma descriptor)</p></li>
+<li><p>dwmac100.h, dwmac1000.h, dwmac_dma.h</p></li>
+<li><p>am_eth_reg.h, mmc.h, stmmac_ptp.h</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="data-structure">
+<h2>Data Structure<a class="headerlink" href="#data-structure" title="Permalink to this headline">¶</a></h2>
+<p>4 ops in <code class="docutils literal notranslate"><span class="pre">mac_device_info</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">mac_device_info</span>
+
+<span class="o">-</span> <span class="n">stmmac_ops</span> <span class="o">*</span><span class="n">mac</span><span class="p">;</span>       <span class="o">//</span> <span class="n">dwmac</span><span class="o">*.</span><span class="n">c</span>
+<span class="o">-</span> <span class="n">stmmac_dma_ops</span> <span class="o">*</span><span class="n">dma</span><span class="p">;</span>   <span class="o">//</span> <span class="n">dwmac</span><span class="o">*.</span><span class="n">c</span>
+<span class="o">-</span> <span class="n">stmmac_desc_ops</span> <span class="o">*</span><span class="n">desc</span><span class="p">;</span> <span class="o">//</span> <span class="o">*</span><span class="n">_desc</span><span class="o">.</span><span class="n">c</span>
+<span class="o">-</span> <span class="n">stmmac_mode_ops</span> <span class="o">*</span><span class="n">mode</span><span class="p">;</span> <span class="o">//</span> <span class="o">*</span><span class="n">_mode</span><span class="o">.</span><span class="n">c</span>
+
+<span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">priv</span><span class="o">-&gt;</span><span class="n">hw</span><span class="o">-&gt;</span><span class="n">mac</span><span class="o">-&gt;</span><span class="n">set_umac_addr</span><span class="p">()</span>
+<span class="n">use</span> <span class="n">stmmac_ops</span> <span class="n">dwmac1000_ops</span><span class="o">-&gt;</span><span class="n">set_umac_addr</span><span class="p">()</span> <span class="n">at</span> <span class="n">dwmac1000_core</span><span class="o">.</span><span class="n">c</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">stmmac_priv</span></code>, which is stmmac’s private_data of <code class="docutils literal notranslate"><span class="pre">netdev</span></code>.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">__iomem</span><span class="o">*</span> <span class="n">ioaddr</span><span class="p">;</span>              <span class="o">//</span> <span class="n">MMIO</span> <span class="n">region</span> <span class="n">base</span> <span class="n">address</span>
+<span class="n">struct</span> <span class="n">mac_device_info</span><span class="o">*</span> <span class="n">hw</span><span class="p">;</span>        <span class="o">//</span> <span class="mi">4</span> <span class="n">ops</span>
+
+<span class="n">struct</span> <span class="n">plat_stmmacenet_data</span><span class="o">*</span> <span class="n">plat</span><span class="p">;</span> <span class="o">//</span> <span class="n">struct</span> <span class="n">device</span><span class="o">-&gt;</span><span class="n">platform_data</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="control-flow">
+<h2>Control Flow<a class="headerlink" href="#control-flow" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="stmmac-driver-setting-mac-address">
+<h3>stmmac driver setting mac address<a class="headerlink" href="#stmmac-driver-setting-mac-address" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="ow">in</span> <span class="n">stmmac_main</span><span class="o">.</span><span class="n">c</span>
+<span class="n">stmmac_hw_setup</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">priv</span><span class="o">-&gt;</span><span class="n">hw</span><span class="o">-&gt;</span><span class="n">mac</span><span class="o">-&gt;</span><span class="n">set_umac_addr</span><span class="p">()</span> <span class="o">=</span> <span class="n">dwmac1000_ops</span><span class="o">.</span><span class="n">set_umac_addr</span><span class="p">()</span> <span class="o">=</span> <span class="n">dwmac1000_set_umac_addr</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">stmmac_set_mac_addr</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="stmmac-mmio-region">
+<h3>stmmac MMIO region<a class="headerlink" href="#stmmac-mmio-region" title="Permalink to this headline">¶</a></h3>
+<p>以下以 <code class="docutils literal notranslate"><span class="pre">stmmac_set_mac_addr()</span></code> 使用到的 MMIO region 為例子</p>
+<p>1. MMIO region 透過 <code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code> 得到, 並透過 <code class="docutils literal notranslate"><span class="pre">ioremap()</span></code> 轉成 virtual address 給 driver 使用.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">driver</span> <span class="n">use</span> <span class="n">MMIO</span> <span class="n">region</span> <span class="n">by</span> <span class="n">accessing</span> <span class="n">priv</span><span class="o">-&gt;</span><span class="n">ioaddr</span>
+<span class="n">stmmac_pltfr_probe</span><span class="p">(</span><span class="n">struct</span> <span class="n">platform_device</span> <span class="o">*</span><span class="n">pdev</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">platform_get_resource</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="n">IORESOURCE_MEM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">addr</span> <span class="o">=</span> <span class="n">devm_ioremap_resource</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">res</span><span class="p">);</span>
+    <span class="o">...</span>
+    <span class="n">stmmac_dvr_probe</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">void</span> <span class="n">__iomem</span> <span class="o">*</span><span class="n">addr</span><span class="p">)</span>
+
+        <span class="n">priv</span><span class="o">-&gt;</span><span class="n">ioaddr</span> <span class="o">=</span> <span class="n">addr</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>2. <code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code> 透過 device tree 獲得 hard-coded 的 MMIO region address. <code class="docutils literal notranslate"><span class="pre">platform_device</span></code> 適用這套 API.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">platform_get_resource</span><span class="p">()</span> <span class="n">get</span> <span class="n">resource</span> <span class="kn">from</span> <span class="nn">Device</span> <span class="n">Tree</span>
+<span class="o">//</span> <span class="ow">in</span> <span class="n">arch</span><span class="o">/</span><span class="n">arm64</span><span class="o">/</span><span class="n">boot</span><span class="o">/</span><span class="n">dts</span><span class="o">/</span><span class="n">meson64_odroidc2</span><span class="o">.</span><span class="n">dts</span>
+
+    <span class="n">ethmac</span><span class="p">:</span> <span class="n">ethernet</span><span class="nd">@0xc9410000</span><span class="p">{</span>
+         <span class="n">compatible</span> <span class="o">=</span> <span class="s2">&quot;amlogic, gxbb-rgmii-dwmac&quot;</span><span class="p">;</span>
+         <span class="n">reg</span> <span class="o">=</span> <span class="o">&lt;</span><span class="mh">0x0</span> <span class="mh">0xc9410000</span> <span class="mh">0x0</span> <span class="mh">0x10000</span>
+         <span class="mh">0x0</span> <span class="mh">0xc8834540</span> <span class="mh">0x0</span> <span class="mh">0x8</span><span class="o">&gt;</span>
+         <span class="o">...</span>
+    <span class="p">}</span>
+    <span class="n">platform_get_resource</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="n">IORESOURCE_MEM</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">start</span><span class="o">=</span><span class="mh">0xc9410000</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mh">0x10000</span>
+    <span class="n">platform_get_resource</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="n">IORESOURCE_MEM</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">start</span><span class="o">=</span><span class="mh">0xc8834540</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mh">0x8</span>
+</pre></div>
+</div>
+<p>p.s. <code class="docutils literal notranslate"><span class="pre">stmmac_set_mac_addr()</span></code> 計算 MMIO offset 的方式</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">MMIO</span> <span class="n">offset</span>
+<span class="o">//</span> <span class="ow">in</span> <span class="n">dwmac1000</span><span class="o">.</span><span class="n">h</span>
+<span class="n">GMAC_ADDR_HIGH</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x40</span> <span class="o">+</span> <span class="n">reg</span><span class="o">*</span><span class="mi">8</span> <span class="k">if</span> <span class="n">reg</span> <span class="o">&lt;=</span> <span class="mi">15</span><span class="p">;</span>
+<span class="n">GMAC_ADDR_LOW</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>  <span class="o">=</span> <span class="mh">0x44</span> <span class="o">+</span> <span class="n">reg</span><span class="o">*</span><span class="mi">8</span> <span class="k">if</span> <span class="n">reg</span> <span class="o">&lt;=</span> <span class="mi">15</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="net-device-ops-napi-transfer-and-receive">
+<h3>net_device_ops/NAPI transfer and receive<a class="headerlink" href="#net-device-ops-napi-transfer-and-receive" title="Permalink to this headline">¶</a></h3>
+<p>driver transfer data to device.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ndo_start_xmit()</span></code></p>
+<p>receive data from parameter <code class="docutils literal notranslate"><span class="pre">sk_buff</span></code> and transfer to <code class="docutils literal notranslate"><span class="pre">dma_desc</span></code>?</p>
+<ul>
+<li><p>data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">priv</span><span class="o">-&gt;</span><span class="n">cur_tx</span>
+<span class="n">priv</span><span class="o">-&gt;</span><span class="n">dma_tx</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">des2</span><span class="p">:</span> <span class="n">dma_map_single</span><span class="p">(),</span> <span class="n">skb_frag_dma_map</span><span class="p">()</span>
+<span class="n">priv</span><span class="o">-&gt;</span><span class="n">tx_skbuff_dma</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">buf</span><span class="p">:</span> <span class="n">alias</span> <span class="n">of</span> <span class="n">priv</span><span class="o">-&gt;</span><span class="n">dma_tx</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">des2</span>
+<span class="n">priv</span><span class="o">-&gt;</span><span class="n">tx_skbuff</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span>
+</pre></div>
+</div>
+</li>
+<li><p>functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>priv-&gt;hw-&gt;dma ops: enable_dma_transmission(priv-&gt;ioaddr);
+priv-&gt;hw-&gt;desc ops: prepare_tx_desc(), set_tx_owner(), close_tx_desc()
+skb_frag_dma_map(): dma_map_page() from ``sk_buff&#39;s`` page.
+</pre></div>
+</div>
+</li>
+</ul>
+<p>所以, 有幾個重點的 dependency 先處理</p>
+<ol class="arabic simple">
+<li><p>dma mapping API: dma_map_single(), dma_map_page()</p></li>
+<li><p>sk_buff intro:</p></li>
+<li><p>stmmac hw datasheet? 我想看 TX/RX Ring 的 data structure</p></li>
+</ol>
+<p>driver receive data from device.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stmmac_poll()</span></code></p>
+</div>
+<div class="section" id="other-net-device-ops">
+<h3>other net_device_ops<a class="headerlink" href="#other-net-device-ops" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>ndo_ioctl</p>
+<ul>
+<li><p>stmmac_hwtstamp_ioctl()</p></li>
+<li><p>phy_mii_ioctl(): forward to PHY <code class="docutils literal notranslate"><span class="pre">ioctl()</span></code></p></li>
+</ul>
+</li>
+<li><p>ndo_open, ndo_stop</p></li>
+<li><p>ndo_poll_controller</p></li>
+<li><p>ndo_tx_timeout: stmmac_tx_err(priv);</p></li>
+<li><p>ndo_set_config: not supported (<code class="docutils literal notranslate"><span class="pre">-EOPNOTSUPP</span></code>)</p></li>
+<li><p>ndo_set_mac_address = NULL</p></li>
+<li><p>ndo_change_mtu: dev-&gt;mtu = new_mtu; netdev_update_features(dev);</p></li>
+<li><p>ndo_fix_features: check flags</p></li>
+<li><p>ndo_set_rx_mode: priv-&gt;hw-&gt;mac-&gt;set_filter(dev, priv-&gt;synopsys_id);</p></li>
+</ul>
+<p>more than <code class="docutils literal notranslate"><span class="pre">net_device_ops</span></code>, recieve need interrupt</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stmmac_interrupt()</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">stmmac_dma_interrupt()</span></code>: 應該是 interrupt handler</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">priv-&gt;hw-&gt;dma-&gt;dma_interrupt()</span></code> 確認是否 handle_tx/rx, 或者 transmit error.
+(handle_tx/rx 對應到 dwmac DMA 的 normal interrupt 的其中兩個種類)</p></li>
+<li><p>如果需要 handle_tx/rx, 則 trigger <code class="docutils literal notranslate"><span class="pre">__napi_schedule()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="other-info">
+<h2>Other Info<a class="headerlink" href="#other-info" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="platform-bus-abstraction">
+<h3>platform bus abstraction<a class="headerlink" href="#platform-bus-abstraction" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">stmmac_platform.c</span></code> implement a platform driver <code class="docutils literal notranslate"><span class="pre">stmmac_pltfr_driver</span></code>.
+This driver is a wrapper of <code class="docutils literal notranslate"><span class="pre">stmmac_driver</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stmmac_main.c</span></code> registers this platform driver (<code class="docutils literal notranslate"><span class="pre">stmmac_pltfr_driver</span></code>) at kernel module initialization.</p>
+<p><code class="docutils literal notranslate"><span class="pre">stmmac_pltfr_driver</span></code> implements platform driver ops (ops of <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">platform_driver</span></code>), like probe, remove, driver.shutdown, driver.pm_ops.
+<code class="docutils literal notranslate"><span class="pre">stmmac_pltfr_driver</span></code>’s ops depend on <code class="docutils literal notranslate"><span class="pre">stmmac_driver</span></code> ops, just do some customization.</p>
+<p>customizations:</p>
+<ul>
+<li><p>MMIO region: <code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code>, <code class="docutils literal notranslate"><span class="pre">ioremap()</span></code></p></li>
+<li><p>3 IRQs:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">priv</span><span class="o">-&gt;</span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">irq</span> <span class="o">=</span> <span class="n">platform_get_irq_byname</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="s2">&quot;macirq&quot;</span><span class="p">);</span>
+<span class="n">priv</span><span class="o">-&gt;</span><span class="n">wol_irq</span> <span class="o">=</span> <span class="n">platform_get_irq_byname</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="s2">&quot;eth_wake_irq&quot;</span><span class="p">);</span>
+<span class="n">priv</span><span class="o">-&gt;</span><span class="n">lpi_irq</span> <span class="o">=</span> <span class="n">platform_get_irq_byname</span><span class="p">(</span><span class="n">pdev</span><span class="p">,</span> <span class="s2">&quot;eth_lpi&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">device</span></code>’s platform_data</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stmmac_probe_config_dt()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">platdata_copy_from_machine_data(device,</span> <span class="pre">plat);</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">setup_mac_addr(pdev,</span> <span class="pre">mac);</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plat_stmmacenet_data-&gt;setup()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plat_stmmacenet_data-&gt;init()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="dwmac-meson-c">
+<h3>dwmac-meson.c<a class="headerlink" href="#dwmac-meson-c" title="Permalink to this headline">¶</a></h3>
+<p>implements 2 functions <code class="docutils literal notranslate"><span class="pre">setup()</span></code> and <code class="docutils literal notranslate"><span class="pre">fix_mac_speed()</span></code></p>
+<p>setup functions to device’s platform_data <code class="docutils literal notranslate"><span class="pre">plat_stmmacenet_data</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">platdata_copy_from_machine_data</span><span class="p">(</span><span class="n">const</span> <span class="n">struct</span> <span class="n">of_device_id</span> <span class="o">*</span><span class="n">device</span><span class="p">,</span> <span class="n">struct</span> <span class="n">plat_stmmacenet_data</span> <span class="o">*</span><span class="n">plat</span><span class="p">){</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">device</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">const</span> <span class="n">struct</span> <span class="n">stmmac_of_data</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="n">device</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+        <span class="n">plat</span><span class="o">-&gt;</span><span class="n">setup</span> <span class="o">=</span> <span class="n">data</span><span class="o">-&gt;</span><span class="n">setup</span><span class="p">;</span>
+        <span class="n">plat</span><span class="o">-&gt;</span><span class="n">fix_mac_speed</span> <span class="o">=</span> <span class="n">data</span><span class="o">-&gt;</span><span class="n">fix_mac_speed</span><span class="p">;</span>
+        <span class="o">...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>usage about these functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">priv</span><span class="o">-&gt;</span><span class="n">plat</span><span class="o">-&gt;</span><span class="n">fix_mac_speed</span><span class="p">()</span>
+<span class="mf">2.</span> <span class="n">custom</span> <span class="n">setup</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">platform_driver</span> <span class="n">initialization</span><span class="o">.</span>
+
+<span class="n">stmmac_pltfr_probe</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">stmmac_probe_config_dt</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">platdata_copy_from_machine_data</span><span class="p">()</span>
+    <span class="n">struct</span> <span class="n">platform_device</span> <span class="o">*</span><span class="n">pdev</span><span class="p">;</span>
+    <span class="n">struct</span> <span class="n">plat_stmmacenet_data</span> <span class="o">*</span><span class="n">plat_dat</span> <span class="o">=</span> <span class="n">dev_get_platdata</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pdev</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">);</span>
+    <span class="o">...</span>
+    <span class="o">//</span> <span class="n">custom</span> <span class="n">setup</span> <span class="n">function</span>
+    <span class="n">plat_dat</span><span class="o">-&gt;</span><span class="n">setup</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dwmac-dma">
+<h3>dwmac DMA<a class="headerlink" href="#dwmac-dma" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>source codes: dwmac_lib.c, dwmac_dma.h</p></li>
+<li><p>DMA registers</p>
+<ul>
+<li><p>CSR: control and status registers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dwmac_dma.h</span></code>: DMA CSR Mapping(MMIO), from <code class="docutils literal notranslate"><span class="pre">DMA_BUS_MODE(0x1000)</span></code> to <code class="docutils literal notranslate"><span class="pre">DMA_HW_FEATURE(0x1058)</span></code>. (CSR0 to CSR8, and … CSR?)</p></li>
+<li><p>CSR1: enable dma transmission</p></li>
+<li><p>CSR7: mask interrupt and record interrupt type. (<code class="docutils literal notranslate"><span class="pre">DMA_INTR_ENA_*</span></code>)</p></li>
+<li><p>DMA status register (CSR5): <code class="docutils literal notranslate"><span class="pre">DMA_STATUS_*</span></code></p></li>
+<li><p>DMA control register (CSR6): <code class="docutils literal notranslate"><span class="pre">DMA_CONTROL_*</span></code></p></li>
+</ul>
+</li>
+<li><p>DMA interrupt: <code class="docutils literal notranslate"><span class="pre">DMA_INTR_ENA_*</span></code></p>
+<ul>
+<li><p>normal interrupt: 5 kinds, from NIE to ERE</p></li>
+<li><p>abnormal interrupt: 10 kinds, from AIE to TSE</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">STMicro ethernet driver note</a><ul>
+<li><a class="reference internal" href="#source-file-and-config">Source File and Config</a></li>
+<li><a class="reference internal" href="#data-structure">Data Structure</a></li>
+<li><a class="reference internal" href="#control-flow">Control Flow</a><ul>
+<li><a class="reference internal" href="#stmmac-driver-setting-mac-address">stmmac driver setting mac address</a></li>
+<li><a class="reference internal" href="#stmmac-mmio-region">stmmac MMIO region</a></li>
+<li><a class="reference internal" href="#net-device-ops-napi-transfer-and-receive">net_device_ops/NAPI transfer and receive</a></li>
+<li><a class="reference internal" href="#other-net-device-ops">other net_device_ops</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#other-info">Other Info</a><ul>
+<li><a class="reference internal" href="#platform-bus-abstraction">platform bus abstraction</a></li>
+<li><a class="reference internal" href="#dwmac-meson-c">dwmac-meson.c</a></li>
+<li><a class="reference internal" href="#dwmac-dma">dwmac DMA</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/net_driver/stmmac_note.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

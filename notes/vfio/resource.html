@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>VFIO resource &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="VFIO ARM resource" href="ARM_implementation.html" />
+    <link rel="prev" title="VFIO" href="../vfio.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vfio-resource">
+<h1>VFIO resource<a class="headerlink" href="#vfio-resource" title="Permalink to this headline">¶</a></h1>
+<p>introduction</p>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.linux-kvm.org/images/5/54/01x04-Alex_Williamson-An_Introduction_to_PCI_Device_Assignment_with_VFIO.pdf">[2016] An Introduction to PCI Device Assignment with VFIO</a></p></li>
+<li><p><a class="reference external" href="https://www.linux-kvm.org/images/b/b4/2012-forum-VFIO.pdf">[2012] VFIO: A User’s Perspective</a></p></li>
+<li><p><a class="reference external" href="https://lwn.net/Articles/474088/">(2012) LWN - Safe device assignment with VFIO</a></p></li>
+</ul>
+<p>other intro</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/entry/20160605">[2016] IBM LTC China - VFIO introduction</a></p></li>
+<li><p><a class="reference external" href="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/entry/vfio">[2013] IBM LTC China - VFIO 簡介</a></p></li>
+</ul>
+<p>More</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Documentation/vfio.txt</span></code></p></li>
+<li><p><a class="reference external" href="http://blog.csdn.net/WangyueSongshan/article/details/50363714">vfio 内核实现分析 (1) ~ (7)</a></p></li>
+</ul>
+<div class="section" id="kernel-patches">
+<h2>Kernel Patches<a class="headerlink" href="#kernel-patches" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>(2012, linux-v3.6) 1st VFIO patches</p>
+<ul>
+<li><p><a class="reference external" href="https://kernelnewbies.org/Linux_3.6#head-edf6c6d47bba170502ccfd4706419cd4f2ce0e30">VFIO: bare-metal safe access to devices from userspace drivers</a></p></li>
+<li><p>4 commit: VFIO core, IOMMU, PCI device driver, doc</p></li>
+</ul>
+</li>
+<li><p>(應該不太需要了) patch before mainline kernel: <a class="reference external" href="http://lwn.net/Articles/473975/">VFIO core framework</a>, <a class="reference external" href="http://www.mail-archive.com/kvm&#64;vger.kernel.org/msg65422.html">code</a></p></li>
+</ul>
+<p>VFIO_PLATFORM</p>
+<ul class="simple">
+<li><p>see <a class="reference internal" href="ARM_implementation.html"><span class="doc">VFIO ARM resource</span></a></p></li>
+</ul>
+<div class="section" id="vfio-no-iommu">
+<h3>VFIO no-IOMMU<a class="headerlink" href="#vfio-no-iommu" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=934f98d7e8123892bd9ca8ea08728ee0784e6597">Merge tag ‘vfio-v4.4-rc1’ of git://github.com/awilliam/linux-vfio</a></p>
+<ul>
+<li><p>No-IOMMU interface (Alex Williamson)</p></li>
+</ul>
+</li>
+<li><p>[linux-v4.5] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=03a76b60f8ba27974e2d252bc555d2c103420e15">vfio: Include No-IOMMU mode</a></p></li>
+<li><p>[linux-v4.8] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9698cbf0bea6b9f5c3190ce97bdf8963c0148671">vfio: platform: support No-IOMMU mode</a></p></li>
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e55884d2c6ac3ae50e49a1f6fe38601a91181719">Merge tag ‘vfio-v4.8-rc1’ of git://github.com/awilliam/linux-vfio</a></p>
+<ul>
+<li><p>Enable no-iommu mode for platform devices (Peng Fan)</p></li>
+<li><p>vfio: platform: support No-IOMMU mode</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="misc-kernel-patches">
+<h3>Misc kernel patches<a class="headerlink" href="#misc-kernel-patches" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>[linux-v4.4] Support for VT-d posted interrupts. Used by KVM and VFIO</p>
+<ul>
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f73f8173126ba68eb1c42bd9a234a51d78576ca6">virt: IRQ bypass manager</a></p></li>
+</ul>
+</li>
+<li><p>[linux-v3.13] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ec53500fae421e07c5d035918ca454a429732ef4">kvm: Add VFIO device</a></p>
+<ul>
+<li><p>KVM VFIO interaction by KVM-VFIO device</p></li>
+</ul>
+</li>
+<li><p>[linux-v3.12] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8b27ee60bfd6bbb84d2df28fa706c5c5081066ca">vfio-pci: PCI hot reset interface</a></p></li>
+<li><p>[linux-v3.6] <a class="reference external" href="https://kernelnewbies.org/Linux_3.6#head-edf6c6d47bba170502ccfd4706419cd4f2ce0e30">VFIO: bare-metal safe access to devices from userspace drivers</a></p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">VFIO resource</a><ul>
+<li><a class="reference internal" href="#kernel-patches">Kernel Patches</a><ul>
+<li><a class="reference internal" href="#vfio-no-iommu">VFIO no-IOMMU</a></li>
+<li><a class="reference internal" href="#misc-kernel-patches">Misc kernel patches</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../vfio.html">VFIO</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VFIO resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARM_implementation.html">VFIO ARM resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core.html">VFIO implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core2.html">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/vfio/resource.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Interrupt Handling More &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="interrupt-handling-more">
+<h1>Interrupt Handling More<a class="headerlink" href="#interrupt-handling-more" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="sa-shirq-and-irq-internal">
+<h2><code class="docutils literal notranslate"><span class="pre">SA_SHIRQ</span></code> and IRQ internal<a class="headerlink" href="#sa-shirq-and-irq-internal" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>struct irq_desc, irqaction</p></li>
+<li><p><a class="reference external" href="https://gist.github.com/u1240976/e4358c1ba6dda64e8f41a74bf7689ab">https://gist.github.com/u1240976/e4358c1ba6dda64e8f41a74bf7689ab</a></p></li>
+<li><p>irq_desc-&gt;depth implements nested call of <code class="docutils literal notranslate"><span class="pre">disable_irq()/enable_irq()</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="disable-irq-v-s-local-irq-disable">
+<h2><code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code> v.s. <code class="docutils literal notranslate"><span class="pre">local_irq_disable()</span></code><a class="headerlink" href="#disable-irq-v-s-local-irq-disable" title="Permalink to this headline">¶</a></h2>
+<p>internal:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">local_irq_*()</span></code> use CPU instructions to disable CPU receive IRQ.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code> use irqchip feature to disable irqchip send IRQ.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span><span class="o">/</span><span class="n">irq</span><span class="o">/</span><span class="n">manage</span><span class="o">.</span><span class="n">c</span>
+<span class="n">kernel</span><span class="o">/</span><span class="n">irq</span><span class="o">/</span><span class="n">chip</span><span class="o">.</span><span class="n">c</span>
+
+<span class="n">disable_irq</span><span class="p">()</span><span class="o">/</span><span class="n">disable_irq_nosync</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">irq_disable</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">irq_chip</span><span class="o">.</span><span class="n">irq_disable</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="local-irq-compatibility-in-arm">
+<h2><code class="docutils literal notranslate"><span class="pre">local_irq_*()</span></code> compatibility in ARM<a class="headerlink" href="#local-irq-compatibility-in-arm" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">local_irq_*()</span></code> in ARM</p>
+<blockquote>
+<div><p>source file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">irqflags</span><span class="o">.</span><span class="n">h</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">irqflags</span><span class="o">.</span><span class="n">h</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm64</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">irqflags</span><span class="o">.</span><span class="n">h</span>
+</pre></div>
+</div>
+<p>各平台實作基於 <code class="docutils literal notranslate"><span class="pre">arch_local_irq_save()</span></code>.</p>
+<p>很多不同平台的 ARM instructions support.</p>
+<p>enable/disable:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">cpsid</span> <span class="o">/</span> <span class="n">cpsie</span> <span class="n">instructions</span>
+<span class="mf">2.</span> <span class="n">CPSR</span><span class="p">,</span> <span class="n">CPSR_c</span> <span class="n">registers</span>
+<span class="mf">3.</span> <span class="n">daifset</span> <span class="o">/</span> <span class="n">daifclr</span> <span class="n">registers</span>
+</pre></div>
+</div>
+<p>save/restore:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">primask</span> <span class="n">register</span>
+<span class="mf">2.</span> <span class="n">CPSR_c</span> <span class="n">register</span>
+<span class="mf">3.</span> <span class="n">daif</span> <span class="n">register</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Some Topics/Questions</p>
+<ul class="simple">
+<li><p>How to write a safe interrupt handler?</p></li>
+<li><p>trace <code class="docutils literal notranslate"><span class="pre">/proc/interrupt</span></code> and <code class="docutils literal notranslate"><span class="pre">/proc/stat</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code> sync problem. why <code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code> calls <code class="docutils literal notranslate"><span class="pre">__disable_irq_nosync()</span></code> before <code class="docutils literal notranslate"><span class="pre">synchronize_irq()</span></code>?</p></li>
+</ul>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://kernel.meizu.com/linux-interrupt.html">http://kernel.meizu.com/linux-interrupt.html</a></p></li>
+<li><p><a class="reference external" href="http://kernel.meizu.com/linux-workqueue.html">http://kernel.meizu.com/linux-workqueue.html</a></p></li>
+<li><p><a class="reference external" href="http://www.wowotech.net/irq_subsystem/gic_driver.htm">http://www.wowotech.net/irq_subsystem/gic_driver.htm</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Interrupt Handling More</a><ul>
+<li><a class="reference internal" href="#sa-shirq-and-irq-internal"><code class="docutils literal notranslate"><span class="pre">SA_SHIRQ</span></code> and IRQ internal</a></li>
+<li><a class="reference internal" href="#disable-irq-v-s-local-irq-disable"><code class="docutils literal notranslate"><span class="pre">disable_irq()</span></code> v.s. <code class="docutils literal notranslate"><span class="pre">local_irq_disable()</span></code></a></li>
+<li><a class="reference internal" href="#local-irq-compatibility-in-arm"><code class="docutils literal notranslate"><span class="pre">local_irq_*()</span></code> compatibility in ARM</a></li>
+<li><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/dma/ch10_more.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

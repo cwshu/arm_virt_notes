@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>DMA Mapping &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="VFIO" href="../vfio.html" />
+    <link rel="prev" title="PL330 DMA Controller" href="pl330.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="dma-mapping">
+<h1>DMA Mapping<a class="headerlink" href="#dma-mapping" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>[ELC2014] <a class="reference external" href="http://elinux.org/images/4/49/20140429-dma.pdf">Mastering the DMA and IOMMU API</a></p></li>
+</ul>
+<div class="section" id="source-code">
+<h2>Source Code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>headers:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">struct</span> <span class="n">dma_map_ops</span>
+<span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+
+<span class="o">//</span> <span class="n">dma_map_</span><span class="o">*</span><span class="p">(),</span> <span class="n">dma_alloc_</span><span class="o">*</span><span class="p">()</span> <span class="n">APIs</span>
+<span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">-</span><span class="n">generic</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">-</span><span class="n">common</span><span class="o">.</span><span class="n">h</span>
+
+<span class="o">//</span> <span class="n">get_dma_ops</span><span class="p">(),</span> <span class="n">some</span> <span class="n">of</span> <span class="n">dma_</span><span class="o">*</span><span class="p">()</span> <span class="n">APIs</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">x86</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm64</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+</pre></div>
+</div>
+</li>
+<li><p>sources:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">struct</span> <span class="n">dma_map_ops</span> <span class="n">implementations</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">implement</span> <span class="mi">4</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">dma_map_ops</span>
+<span class="n">arch</span><span class="o">/</span><span class="n">arm64</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">implement</span> <span class="mi">2</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">dma_map_ops</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="intro">
+<h2>Intro<a class="headerlink" href="#intro" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>DMA mapping API abstraction</p>
+<ul class="simple">
+<li><p>DMA mapping ops: <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">dma_map_ops</span></code></p></li>
+<li><p>DMA mapping API: <code class="docutils literal notranslate"><span class="pre">dma_map_*()</span></code>, <code class="docutils literal notranslate"><span class="pre">dma_alloc_*()</span></code> …, like <code class="docutils literal notranslate"><span class="pre">dma_alloc_coherent(struct</span> <span class="pre">device*)</span></code></p></li>
+<li><p>DMA mapping API is the abstraction of DMA mapping ops.
+It use <code class="docutils literal notranslate"><span class="pre">get_dma_op()</span></code> to find correct DMA mapping ops implementation.</p></li>
+</ul>
+</li>
+<li><p>DMA mapping ops has 6 kinds of APIs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alloc()</span></code> op do memory allocation?</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">arm_dma_ops.alloc()</span></code> can use 4 different allocators, including CMA allocator.</p></li>
+<li><p>simple_allocator’s <code class="docutils literal notranslate"><span class="pre">alloc()</span></code> use memory subsystem API <code class="docutils literal notranslate"><span class="pre">alloc_page()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iommu_ops.alloc()</span></code> use gen_pool allocator</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">map_*()</span></code> op do cache invalidate and clean operations</p></li>
+</ol>
+</div>
+<div class="section" id="dma-mapping-api">
+<h2>DMA mapping API<a class="headerlink" href="#dma-mapping-api" title="Permalink to this headline">¶</a></h2>
+<p>DMA mapping API/ops</p>
+<ul class="simple">
+<li><p>DMA mapping ops 有 6 種 operations: alloc, free, mmap, get_sgtable, map, sync.</p>
+<ul>
+<li><p>其中 map 跟 sync 的 API 比較多樣, 根據 memory 的使用範圍有 page 跟 sg list 兩種版本.</p></li>
+<li><p>sync 還分成 for_cpu 跟 for_device 兩種.</p></li>
+</ul>
+</li>
+<li><p>DMA mapping API</p>
+<ul>
+<li><p>map 包裝後有 single, page, sg list 三種.</p></li>
+<li><p>sync 包裝後有 single, single_range, sg list 三種.</p></li>
+<li><p>alloc, free 有 coherent 跟 noncoherent 版本, mmap 只有 coherent 版本.</p></li>
+</ul>
+</li>
+</ul>
+<ul class="simple">
+<li><p>all source code at include/linux/dma-mapping.h</p></li>
+</ul>
+<p>DMA mapping ops:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">dma_map_ops</span>
+
+<span class="o">-</span> <span class="n">alloc</span><span class="p">,</span> <span class="n">free</span>
+<span class="o">-</span> <span class="n">mmap</span>
+<span class="o">-</span> <span class="n">get_sgtable</span>
+<span class="o">-</span> <span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">page</span><span class="p">,</span> <span class="n">sg</span><span class="p">}</span>
+<span class="o">-</span> <span class="n">sync_</span><span class="p">{</span><span class="n">single</span><span class="p">,</span> <span class="n">sg</span><span class="p">}</span><span class="n">_for_</span><span class="p">{</span><span class="n">cpu</span><span class="p">,</span> <span class="n">device</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>DMA mapping API:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">dma_</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_single</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_page</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_page</span><span class="p">()</span>   <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_page</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_sg</span><span class="p">()</span>     <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="p">{</span><span class="nb">map</span><span class="p">,</span> <span class="n">unmap</span><span class="p">}</span><span class="n">_sg</span><span class="p">()</span>
+
+<span class="o">-</span> <span class="n">dma_sync_single_</span><span class="p">[</span><span class="nb">range</span><span class="p">]</span><span class="n">_for_</span><span class="p">{</span><span class="n">cpu</span><span class="p">,</span> <span class="n">device</span><span class="p">}()</span> <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">sync_single_for_</span><span class="p">{</span><span class="n">cpu</span><span class="p">,</span> <span class="n">device</span><span class="p">}()</span>
+<span class="o">-</span> <span class="n">dma_sync_sg_for_</span><span class="p">{</span><span class="n">cpu</span><span class="p">,</span> <span class="n">device</span><span class="p">}()</span>             <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">sync_sg_for_</span><span class="p">{</span><span class="n">cpu</span><span class="p">,</span> <span class="n">device</span><span class="p">}()</span>
+
+<span class="o">-</span> <span class="n">dma_alloc_coherent</span><span class="p">()</span>    <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">alloc</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_free_coherent</span><span class="p">()</span>     <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">free</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_alloc_noncoherent</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="ow">not</span> <span class="n">implemented</span> <span class="ow">or</span> <span class="n">same</span> <span class="k">as</span> <span class="n">coherent</span> <span class="n">version</span><span class="o">.</span>
+<span class="o">-</span> <span class="n">dma_free_noncoherent</span><span class="p">()</span>  <span class="o">=&gt;</span> <span class="ow">not</span> <span class="n">implemented</span> <span class="ow">or</span> <span class="n">same</span> <span class="k">as</span> <span class="n">coherent</span> <span class="n">version</span><span class="o">.</span>
+
+<span class="o">-</span> <span class="n">dma_mmap_coherent</span><span class="p">()</span>     <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">mmap</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_mmap_writecombine</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">mmap</span><span class="p">()</span>
+<span class="o">-</span> <span class="n">dma_get_sgtable</span><span class="p">()</span>       <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">get_sgtable</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dma-map-internal">
+<h2>DMA map internal<a class="headerlink" href="#dma-map-internal" title="Permalink to this headline">¶</a></h2>
+<p>目前猜測:</p>
+<blockquote>
+<div><p>在沒有 IOMMU 環境下, <code class="docutils literal notranslate"><span class="pre">dma_map_*()</span></code> 的行為, 只是去做 cache line 的操作, 或者在加上對 memory type 的設定.
+但應該不會有 memory allocation 以及在 page table 建立新的 memory mapping 的行為發生.</p>
+</div></blockquote>
+<p>這邊 trace 的是 ARM 裏面四套 DMA mapping ops 實作的其中一套, <code class="docutils literal notranslate"><span class="pre">arm_dma_ops</span></code>.
+<cite>arm_dma_ops`</cite> 的 <code class="docutils literal notranslate"><span class="pre">map_page()</span></code> 函式裏面使用了 ARM 的 outercache API 去做 cache invalidate 或 clean 的操作.</p>
+<p>trace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dma_map_single</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">dma_map_single_attrs</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">map_page</span><span class="p">()</span>
+   <span class="n">arm_dma_ops</span><span class="o">.</span><span class="n">map_page</span> <span class="o">=</span> <span class="n">arm_dma_map_page</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">__dma_page_cpu_to_dev</span><span class="p">()</span>
+
+<span class="o">=&gt;</span> <span class="n">outer_clean_range</span><span class="p">()</span> <span class="o">//</span> <span class="n">outercache</span> <span class="n">API</span> <span class="k">for</span> <span class="n">ARM</span>
+<span class="o">=&gt;</span> <span class="n">outer_cache</span><span class="o">.</span><span class="n">clean_range</span><span class="p">();</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">arm_dma_map_page()</span></code> calls <code class="docutils literal notranslate"><span class="pre">outer_clean_range()</span></code> or <code class="docutils literal notranslate"><span class="pre">outer_inv_range()</span></code>, depend on direction of DMA.</p>
+<div class="section" id="outercache">
+<h3>outercache<a class="headerlink" href="#outercache" title="Permalink to this headline">¶</a></h3>
+<p>source:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">outercache</span><span class="o">.</span><span class="n">h</span>
+</pre></div>
+</div>
+<p>API</p>
+<blockquote>
+<div><p>outercache 支援 invalidate, clean, flush, sync 四種類型運算
+前三種運算支援部份 range() 的操作, invalidate 跟 flush 也支援 all() 的操作.</p>
+</div></blockquote>
+<p>implementations:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// 1. L210/L220 cache controller support
+// arch/arm/mm/cache-l2x0.c
+l2x0_clean_range() =&gt; write to HW register L2X0_CLEAN_LINE_PA, for each cache line.
+l2x0_inv_range()   =&gt; write to HW register L2X0_INV_LINE_PA, for each cache line.
+l2x0_flush_range() =&gt; clean + invalidate
+
+// 2. Tauros2 L2 cache controller support (Marvell Semiconductor)
+// arch/arm/mm/cache-tauros2.c
+tauros2_clean_range() =&gt; call tauros2_clean_pa(), for each cache line.
+tauros2_inv_range()   =&gt; call tauros2_inv_pa(), for each cache line.
+tauros2_flush_range() =&gt; call tauros2_clean_inv_pa(), for each cache line.
+
+// before ARMv7?
+tauros2_clean_pa()    : __asm__(&quot;mcr p15, 1, %0, c7, c11, 3&quot; : : &quot;r&quot; (addr));
+tauros2_inv_pa()      : __asm__(&quot;mcr p15, 1, %0, c7, c7, 3&quot; : : &quot;r&quot; (addr));
+tauros2_clean_inv_pa(): __asm__(&quot;mcr p15, 1, %0, c7, c15, 3&quot; : : &quot;r&quot; (addr));
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="dma-alloc-internal">
+<h2>DMA alloc internal<a class="headerlink" href="#dma-alloc-internal" title="Permalink to this headline">¶</a></h2>
+<p>這邊 trace 的是 <code class="docutils literal notranslate"><span class="pre">arm_dma_ops</span></code> 的 <code class="docutils literal notranslate"><span class="pre">alloc()</span></code> 函式實作.</p>
+<p>trace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">c</span>
+
+<span class="o">-</span> <span class="p">[</span><span class="n">arm_dma_ops</span><span class="p">]</span> <span class="n">arm_dma_alloc</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">__dma_alloc</span><span class="p">()</span>
+
+  <span class="o">-</span> <span class="n">get_coherent_dma_mask</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">kzalloc</span><span class="p">(</span><span class="n">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">buf</span><span class="p">),</span> <span class="n">gfp</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="n">__GFP_DMA</span> <span class="o">|</span> <span class="n">__GFP_DMA32</span> <span class="o">|</span> <span class="n">__GFP_HIGHMEM</span><span class="p">));</span>
+  <span class="o">-</span> <span class="n">buf</span><span class="o">-&gt;</span><span class="n">allocator</span> <span class="o">=</span> <span class="p">{</span><span class="n">cma_allocator</span><span class="p">,</span> <span class="n">simple_allocator</span><span class="p">,</span> <span class="n">remap_allocator</span><span class="p">,</span> <span class="n">pool_allocator</span><span class="p">}</span>
+  <span class="o">-</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">buf</span><span class="o">-&gt;</span><span class="n">allocator</span><span class="o">-&gt;</span><span class="n">alloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">args</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">page</span><span class="p">);</span> <span class="o">//</span> <span class="n">所有</span> <span class="n">__dma_alloc</span> <span class="n">的參數都傳入</span> <span class="n">alloc</span> <span class="n">了</span> <span class="p">(</span><span class="n">by</span> <span class="n">args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>ARM 裏面有四套 <code class="docutils literal notranslate"><span class="pre">arm_dma_allocator</span></code>, 也就是上面 trace 到的 <code class="docutils literal notranslate"><span class="pre">cma_allocator,</span> <span class="pre">simple_allocator,</span> <span class="pre">remap_allocator,</span> <span class="pre">pool_allocator</span></code> 這四套.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">trace</span> <span class="n">struct</span> <span class="n">arm_dma_allocator</span> <span class="n">simple_allocator</span>
+
+<span class="o">//</span> <span class="o">.</span><span class="n">alloc</span><span class="p">()</span> <span class="n">operation</span>
+<span class="n">simple_allocator_alloc</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">__alloc_simple_buffer</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">__dma_alloc_buffer</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">alloc_pages</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>這邊 trace 的是 <code class="docutils literal notranslate"><span class="pre">iommu_ops</span></code> 的 <code class="docutils literal notranslate"><span class="pre">alloc()</span></code> 函式實作.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">c</span>
+<span class="p">[</span><span class="n">iommu_ops</span><span class="p">]</span> <span class="n">arm_iommu_alloc_attrs</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">__iommu_alloc_atomic</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">__alloc_from_pool</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">page</span><span class="p">);</span>
+   <span class="o">=&gt;</span> <span class="n">gen_pool_alloc</span><span class="p">(</span><span class="n">atomic_pool</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+<span class="o">=&gt;</span> <span class="o">*</span><span class="n">handle</span> <span class="o">=</span> <span class="n">__iommu_create_mapping</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">page</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<p>programming technique for op abstraction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="mf">1.</span> <span class="n">dma</span> <span class="n">op</span> <span class="n">的軟體包裝方式</span>
+
+<span class="o">//</span> <span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+<span class="n">struct</span> <span class="n">dma_map_ops</span> <span class="p">{</span>
+    <span class="n">void</span><span class="o">*</span> <span class="p">(</span><span class="o">*</span><span class="n">alloc</span><span class="p">)(</span><span class="n">struct</span> <span class="n">device</span> <span class="o">*</span><span class="n">dev</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">size</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">static</span> <span class="n">inline</span> <span class="n">struct</span> <span class="n">dma_map_ops</span> <span class="o">*</span><span class="n">get_dma_ops</span><span class="p">(</span><span class="n">struct</span> <span class="n">device</span> <span class="o">*</span><span class="n">dev</span><span class="p">);</span>
+
+<span class="n">static</span> <span class="n">inline</span> <span class="n">void</span> <span class="o">*</span><span class="n">dma_alloc_attrs</span><span class="p">(</span><span class="n">struct</span> <span class="n">device</span> <span class="o">*</span><span class="n">dev</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">size</span><span class="p">,</span>
+                       <span class="n">dma_addr_t</span> <span class="o">*</span><span class="n">dma_handle</span><span class="p">,</span> <span class="n">gfp_t</span> <span class="n">flag</span><span class="p">,</span> <span class="n">struct</span> <span class="n">dma_attrs</span> <span class="o">*</span><span class="n">attrs</span><span class="p">){</span>
+    <span class="n">struct</span> <span class="n">dma_map_ops</span> <span class="o">*</span><span class="n">ops</span> <span class="o">=</span> <span class="n">get_dma_ops</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+    <span class="n">cpu_addr</span> <span class="o">=</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">alloc</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dma_handle</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="n">attrs</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">cpu_addr</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="o">//</span> <span class="mf">2.</span> <span class="n">arm</span> <span class="n">實作的</span> <span class="n">get_dma_ops</span>
+
+<span class="o">//</span> <span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">h</span>
+<span class="n">static</span> <span class="n">inline</span> <span class="n">struct</span> <span class="n">dma_map_ops</span> <span class="o">*</span><span class="n">get_dma_ops</span><span class="p">(</span><span class="n">struct</span> <span class="n">device</span> <span class="o">*</span><span class="n">dev</span><span class="p">){</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">dev</span> <span class="o">&amp;&amp;</span> <span class="n">dev</span><span class="o">-&gt;</span><span class="n">archdata</span><span class="o">.</span><span class="n">dma_ops</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dev</span><span class="o">-&gt;</span><span class="n">archdata</span><span class="o">.</span><span class="n">dma_ops</span><span class="p">;</span>
+    <span class="k">return</span> <span class="o">&amp;</span><span class="n">arm_dma_ops</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>source file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">common</span><span class="o">/</span><span class="n">dmabounce</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">dma</span> <span class="n">bounce</span><span class="p">,</span> <span class="n">dma</span> <span class="n">memory</span> <span class="n">有限制時的一種特殊技巧的實作</span><span class="o">.</span>
+<span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">pci</span><span class="o">-</span><span class="n">dma</span><span class="o">-</span><span class="n">compat</span><span class="o">.</span><span class="n">h</span>
+
+<span class="o">-</span> <span class="n">讓有實作</span> <span class="n">dma</span> <span class="n">op</span> <span class="n">的</span> <span class="n">pci</span> <span class="n">device</span><span class="p">,</span> <span class="n">使用</span> <span class="n">pci</span> <span class="n">compatible</span> <span class="n">介面處理</span> <span class="n">dma</span>
+<span class="o">-</span> <span class="n">pci_alloc_consistent</span><span class="p">(</span><span class="n">pci_device</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="n">dma_alloc_coherent</span><span class="p">(</span><span class="n">pci_device</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>source code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// 讓有實作 dma op 的 pci device, 使用 pci compatible 介面處理 dma
+
+// include/linux/pci-dma-compat.h
+static inline void * pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
+             dma_addr_t *dma_handle)
+{
+    return dma_alloc_coherent(hwdev == NULL ? NULL : &amp;hwdev-&gt;dev, size, dma_handle, GFP_ATOMIC);
+}
+</pre></div>
+</div>
+</div>
+<div class="section" id="other-reference">
+<h2>other reference<a class="headerlink" href="#other-reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>CMA allocator: <a class="reference external" href="https://events.linuxfoundation.org/images/stories/pdf/lceu2012_nazarwicz.pdf">https://events.linuxfoundation.org/images/stories/pdf/lceu2012_nazarwicz.pdf</a></p></li>
+<li><p>gen_pool: general purpose allocator (Uses for this includes on-device uncached memory)</p>
+<ul>
+<li><p><a class="reference external" href="https://lwn.net/Articles/125842/">https://lwn.net/Articles/125842/</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">DMA Mapping</a><ul>
+<li><a class="reference internal" href="#source-code">Source Code</a></li>
+<li><a class="reference internal" href="#intro">Intro</a></li>
+<li><a class="reference internal" href="#dma-mapping-api">DMA mapping API</a></li>
+<li><a class="reference internal" href="#dma-map-internal">DMA map internal</a><ul>
+<li><a class="reference internal" href="#outercache">outercache</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dma-alloc-internal">DMA alloc internal</a></li>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+<li><a class="reference internal" href="#other-reference">other reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../dma.html">DMA note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="DMA.html">DMA Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linux_dma.html">Linux DMA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pl330.html">PL330 DMA Controller</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DMA Mapping</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/dma/dma_mapping.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

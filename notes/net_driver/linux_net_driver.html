@@ -1,0 +1,348 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linux Network Driver &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Hardware IO in linux driver" href="../dma/driver_io.html" />
+    <link rel="prev" title="Linux Device Driver" href="../device_driver.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="linux-network-driver">
+<h1>Linux Network Driver<a class="headerlink" href="#linux-network-driver" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="document">
+<h2>Document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.makelinux.net/ldd3/?u=chp-17">LDD3 Ch17 Network Drivers</a></p></li>
+<li><p><a class="reference external" href="http://stoa.usp.br/leitao/files/-1/3689/network.pdf">2008, Understanding the Kernel Network Layer</a></p></li>
+<li><p><a class="reference external" href="https://wiki.linuxfoundation.org/networking/napi">Linux Foundation wiki - NAPI</a></p></li>
+</ul>
+</div>
+<div class="section" id="napi-note">
+<h2>NAPI Note<a class="headerlink" href="#napi-note" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>NAPI receive 跟傳統 receive 的差別, 基本上還是 interrupt v.s. polling 兩種方式處理 IO 的差異.</p></li>
+<li><p>傳統 receive: interrupt</p>
+<ul class="simple">
+<li><p>device transfer data and send interrupt.
+kernel 在 interrupt handler 時, 從該 interrupt 對應的 device 的 rx_ring 接收資料.</p></li>
+<li><p>每個 device 可客製化 interrupt handler 來接收資料.</p></li>
+</ul>
+</li>
+<li><p>NAPI receive: mixing interrupt and polling.</p>
+<ul>
+<li><p>kernel 使用一個 softirq 定期去 poll 每個 device 的 rx_ring 來接收資料.</p></li>
+<li><p>每個 device 可客製化 poll function 來接收資料.</p></li>
+<li><p>該 device 的 rx_ring 要不要被 poll, 是可以被開關的: <code class="docutils literal notranslate"><span class="pre">netif_rx_schedule/netif_rx_complete()</span></code></p></li>
+<li><p>Mixing interrupt and polling:</p>
+<p>當 driver 收到 interrupt 時, 在 interrupt handler 暫時 disable interrupt 加上開啟 poll mode.
+等同接下來一段時間的 packet 都共用第一個 interrupt.</p>
+<ul class="simple">
+<li><p>一段時間: 目前設定為 2 jiffies, 1 jiffie 為一次 timer interrupt 的周期 (1 ~ 10ms, based on kernel config)</p></li>
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7acf8a1e8a28b3d7407a8d8061a7d0766cfac2f4">[Linux 4.12 patch]</a>
+預設 2 ms, 可透過 <code class="docutils literal notranslate"><span class="pre">sysctl()</span> <span class="pre">netdev_budget_usecs</span></code> 調整.</p></li>
+</ul>
+</li>
+<li><p>定期: 透過 scheduler and softirq 的機制來處理. 如果提升 <code class="docutils literal notranslate"><span class="pre">ksoftirqd</span></code> 的 priority 可以增加 CPU heavy loading 時的處理頻率.</p></li>
+</ul>
+</li>
+<li><p>More: <a class="reference internal" href="#napi"><span class="std std-ref">NAPI more</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="napi-api">
+<h2>NAPI API<a class="headerlink" href="#napi-api" title="Permalink to this headline">¶</a></h2>
+<p>register poll function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">netif_napi_add</span><span class="p">()</span>
+<span class="n">netif_napi_del</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>add/remove device to the <code class="docutils literal notranslate"><span class="pre">poll_list</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">napi_schedule</span><span class="p">()</span> <span class="o">=</span> <span class="n">napi_schedule_prep</span><span class="p">()</span> <span class="o">+</span> <span class="n">__napi_schedule</span><span class="p">()</span>
+<span class="n">napi_complete</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>temporarily enable/disable polling one device:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">napi_enable</span><span class="p">()</span>
+<span class="n">napi_disable</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The network driver need to do 2 things to use NAPI.</p>
+<ul class="simple">
+<li><p>implement <code class="docutils literal notranslate"><span class="pre">napi_struct-&gt;poll()</span></code>, register by <code class="docutils literal notranslate"><span class="pre">netif_napi_add()</span></code></p></li>
+<li><p>implement interrupt handler which disable interrupt and do <code class="docutils literal notranslate"><span class="pre">napi_schedule()</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="napi-more">
+<span id="napi"></span><h2>NAPI more<a class="headerlink" href="#napi-more" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="motivation">
+<h3>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>faster NIC cause many interrupts</p></li>
+<li><p>Adaptive interrupt coalescing</p></li>
+<li><p>Prevent livelock</p></li>
+<li><p>More fairness in the handling devices</p></li>
+</ul>
+</div>
+<div class="section" id="intro">
+<h3>Intro<a class="headerlink" href="#intro" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Mixes interrupts with polling</p></li>
+<li><p>Process multiples frames during an interrupt</p></li>
+<li><p>Packet throtting: drop packets more fast when system is overwhelmed. kernel doesn’t aware and NIC drop them.</p></li>
+</ul>
+</div>
+<div class="section" id="ingress-workflow">
+<h3>Ingress workflow<a class="headerlink" href="#ingress-workflow" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>NAPI softirq: <code class="docutils literal notranslate"><span class="pre">net_rx_action()</span></code></p>
+<ul>
+<li><p>browses the global queue <code class="docutils literal notranslate"><span class="pre">poll_list</span></code> that have something in the ingress queue.
+(<code class="docutils literal notranslate"><span class="pre">softnet_data-&gt;poll_list</span></code>, list of <code class="docutils literal notranslate"><span class="pre">napi_struct</span></code>)</p></li>
+<li><p>invoke <code class="docutils literal notranslate"><span class="pre">napi_struct-&gt;poll()</span></code> virtual function</p>
+<ul>
+<li><p>like the interrupt handler in pre-NAPI design</p></li>
+</ul>
+</li>
+<li><p>stops when following condition is met:</p>
+<ul>
+<li><p>No more devices</p></li>
+<li><p>Run for too long (2 jiffies)</p></li>
+<li><p>Reached a given upper bound limit (budget, return value of <code class="docutils literal notranslate"><span class="pre">napi_struct-&gt;poll()</span></code>)</p></li>
+<li><p>IRQ enabled</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">napi_struct</span></code></p>
+<ul>
+<li><p>Each interrupt vector need one <code class="docutils literal notranslate"><span class="pre">napi_struct</span></code></p></li>
+<li><p>register: <code class="docutils literal notranslate"><span class="pre">netif_napi_add()</span></code>, <code class="docutils literal notranslate"><span class="pre">netif_napi_del()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">netif_napi_add()</span></code> initialize struct (set poll function) and register it to global hash table (<code class="docutils literal notranslate"><span class="pre">napi_hash</span></code>)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">softnet_data-&gt;poll_list</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">napi_schedule()</span></code>: add device to the <code class="docutils literal notranslate"><span class="pre">poll_list</span></code>. It equals to <code class="docutils literal notranslate"><span class="pre">napi_schedule_prep()</span></code> + <code class="docutils literal notranslate"><span class="pre">__napi_schedule()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">napi_complete()</span></code>: remove device from the <code class="docutils literal notranslate"><span class="pre">poll_list</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">napi_enable/disable()</span></code>: can temporarily enable/disable polling one device (<code class="docutils literal notranslate"><span class="pre">NAPI_STATE_SCHED</span></code>)</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>driver need to implement</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">napi_struct-&gt;poll()</span></code></p></li>
+<li><p>interrupt handler which disable interrupt and do <code class="docutils literal notranslate"><span class="pre">napi_schedule()</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>source code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">netdevice</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">net</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">dev</span><span class="o">.</span><span class="n">c</span>
+
+<span class="n">open_softirq</span><span class="p">(</span><span class="n">NET_RX_SOFTIRQ</span><span class="p">,</span> <span class="n">net_rx_action</span><span class="p">)</span>
+<span class="n">net_rx_action</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">net_poll</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">napi_struct</span><span class="o">-&gt;</span><span class="n">poll</span><span class="p">()</span>
+<span class="n">timer_limit</span> <span class="o">=</span> <span class="n">jiffies</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">//</span> <span class="n">before</span> <span class="n">Linux</span> <span class="mf">4.12</span>
+
+<span class="n">softnet_data</span><span class="o">-&gt;</span><span class="n">poll_list</span> <span class="o">//</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">napi_struct</span>
+<span class="o">//</span> <span class="n">net_rx_action</span><span class="p">()</span> <span class="n">traverse</span> <span class="n">it</span>
+<span class="o">//</span> <span class="n">napi_schedule</span><span class="p">()</span><span class="o">/</span><span class="n">napi_complete</span><span class="p">()</span> <span class="n">add</span> <span class="n">to</span><span class="o">/</span><span class="n">remove</span> <span class="kn">from</span> <span class="nn">it</span>
+
+<span class="n">napi_hash</span> <span class="o">//</span> <span class="nb">hash</span> <span class="n">table</span> <span class="n">of</span> <span class="n">napi_struct</span>
+<span class="o">//</span> <span class="n">netif_napi_add</span><span class="p">()</span> <span class="n">add</span> <span class="n">to</span> <span class="n">it</span>
+<span class="o">//</span> <span class="n">napi_by_id</span><span class="p">()</span> <span class="n">find</span> <span class="n">napi_struct</span> <span class="n">by</span> <span class="nb">hash</span> <span class="nb">id</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="scheduling-issues">
+<h3>Scheduling Issues<a class="headerlink" href="#scheduling-issues" title="Permalink to this headline">¶</a></h3>
+<p>NAPI moves processing to softirq level.
+This also has the effect that the priority of ksoftirq needs to be considered when running very CPU-intensive applications and networking to get the proper balance of softirq/user balance.
+Increasing ksoftirq priority is to cure problems with low network performance at high CPU load.</p>
+</div>
+</div>
+<div class="section" id="content">
+<h2>Content<a class="headerlink" href="#content" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://www.makelinux.net/ldd3/?u=chp-17">LDD3 Ch17 Network Drivers</a></p>
+<ul class="simple">
+<li><p>device registeration: connecting kernel</p></li>
+<li><p>open &amp; closing driver</p>
+<ul>
+<li><p>like char/block device’s <code class="docutils literal notranslate"><span class="pre">open()</span></code> method.</p></li>
+<li><p>triggered by <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> command, syscall interface is <code class="docutils literal notranslate"><span class="pre">ioctl()</span></code> =&gt; set IF_UP flag or mac address</p></li>
+<li><p>IF_UP calls open method of device</p></li>
+<li><p>open method</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">netif_start_queue()</span></code>: start transmit queue</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>packet transmittion</p></li>
+<li><p>packet reception</p></li>
+<li><p>interrupt handler</p></li>
+</ul>
+</div>
+<div class="section" id="content2">
+<h2>Content2<a class="headerlink" href="#content2" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://stoa.usp.br/leitao/files/-1/3689/network.pdf">2008, Understanding the Kernel Network Layer</a></p></li>
+<li><p><a class="reference external" href="https://wiki.linuxfoundation.org/networking/napi">Linux Foundation wiki - NAPI</a></p></li>
+</ul>
+<p>contents</p>
+<ul class="simple">
+<li><p>registeration</p>
+<ul>
+<li><p>global list of network devices</p></li>
+<li><p>device is not a file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">register_netdev(net_device</span> <span class="pre">dev)</span> <span class="pre">=&gt;</span> <span class="pre">dev-&gt;init()</span></code></p></li>
+</ul>
+</li>
+<li><p>interface status</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">net_device-&gt;state</span> <span class="pre">|=</span> <span class="pre">__LINK_STATE_START</span></code></p>
+<ul>
+<li><p>set by <code class="docutils literal notranslate"><span class="pre">dev_open()</span></code>, cleared by <code class="docutils literal notranslate"><span class="pre">dev_close()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__LINK_STATE_XOFF</span></code>, <code class="docutils literal notranslate"><span class="pre">__LINK_STATE_NOCARRIER</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Packet Reception(IRQ)</p>
+<ul>
+<li><p>device receive a packet and generate a IRQ.</p></li>
+<li><p>function from interrupt vector table is called. (e.g. <code class="docutils literal notranslate"><span class="pre">e1000_intr()</span></code>)</p></li>
+<li><p>the driver copies the frame into an input queue.</p></li>
+<li><p>Then, the kernel pass the frame to the upper layer (e.g. IP)</p></li>
+<li><p>an skb is allocated using <code class="docutils literal notranslate"><span class="pre">dev_alloc_skb()</span></code> before DMA accomplishment and after the packet reception.</p></li>
+<li><p>call <code class="docutils literal notranslate"><span class="pre">netif_rx()</span></code>, <code class="docutils literal notranslate"><span class="pre">netif_receive_skb()</span></code>, then <code class="docutils literal notranslate"><span class="pre">ptype-&gt;prev()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="additional-questions">
+<h2>Additional Questions<a class="headerlink" href="#additional-questions" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>In Linux Kernel, what is a difference between kernel thread and softirq?</p>
+<ul>
+<li><p>ksoftirqd is a kernel thread.</p></li>
+<li><p>softirq &lt;<a class="reference external" href="https://0xax.gitbooks.io/linux-insides/content/interrupts/interrupts-9.html#softirqs">https://0xax.gitbooks.io/linux-insides/content/interrupts/interrupts-9.html#softirqs</a>&gt;</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Linux Network Driver</a><ul>
+<li><a class="reference internal" href="#document">Document</a></li>
+<li><a class="reference internal" href="#napi-note">NAPI Note</a></li>
+<li><a class="reference internal" href="#napi-api">NAPI API</a></li>
+<li><a class="reference internal" href="#napi-more">NAPI more</a><ul>
+<li><a class="reference internal" href="#motivation">Motivation</a></li>
+<li><a class="reference internal" href="#intro">Intro</a></li>
+<li><a class="reference internal" href="#ingress-workflow">Ingress workflow</a></li>
+<li><a class="reference internal" href="#scheduling-issues">Scheduling Issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#content">Content</a></li>
+<li><a class="reference internal" href="#content2">Content2</a></li>
+<li><a class="reference internal" href="#additional-questions">Additional Questions</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/net_driver/linux_net_driver.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ARM SoC Device Assignment Notes &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="QEMU/KVM note" href="notes/qemu_kvm.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="arm-soc-device-assignment-notes">
+<h1>ARM SoC Device Assignment Notes<a class="headerlink" href="#arm-soc-device-assignment-notes" title="Permalink to this headline">¶</a></h1>
+<p>主要的研究筆記, 內容包含 VFIO, QEMU/KVM, 跟 Linux device driver.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notes/qemu_kvm.html">QEMU/KVM note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes/device_driver.html">Linux Device Driver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/net_driver/linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/net_driver/platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/net_driver/stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/net_driver/stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes/dma.html">DMA note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/DMA.html">DMA Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/linux_dma.html">Linux DMA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/pl330.html">PL330 DMA Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/dma/dma_mapping.html">DMA Mapping</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes/vfio.html">VFIO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/vfio/resource.html">VFIO resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/vfio/ARM_implementation.html">VFIO ARM resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/vfio/vfio_core.html">VFIO implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/vfio/vfio_core2.html">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>研究需要的副產物, 比如環境安裝, 效能量測的工具</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notes/platform.html">Platform Installations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/platform/ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/platform/archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/platform/guest_image.html">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/platform/kgdb_internal_note.html">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes/perf.html">Perf</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/perf/benchmark.html">Benchmark Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes/misc.html">Misc</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes/misc/alignment_fault.html">Alignment Fault</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes/misc/qemu_command.html">收集一些 ARM guest 時使用的 QEMU Commands</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="#">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ARM SoC Device Assignment Notes</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notes/qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes/device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes/dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes/vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notes/platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes/perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes/misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

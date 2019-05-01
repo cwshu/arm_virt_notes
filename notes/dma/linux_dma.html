@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linux DMA &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="PL330 DMA Controller" href="pl330.html" />
+    <link rel="prev" title="DMA Introduction" href="DMA.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="linux-dma">
+<h1>Linux DMA<a class="headerlink" href="#linux-dma" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dma-controller-engine">
+<h2>DMA Controller/Engine<a class="headerlink" href="#dma-controller-engine" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="source-code">
+<h3>source code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>include/linux/dmaengine.h</p></li>
+<li><p>drivers/dma/dmaengine.c</p></li>
+<li><p>include/linux/amba/pl330.h</p></li>
+<li><p>drivers/dma/pl330.c</p></li>
+</ul>
+</div>
+<div class="section" id="document">
+<h3>document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="http://events.linuxfoundation.org/sites/events/files/slides/ripard-dmaengine.pdf">(maxime, 2015) An Overview of the DMAEngine Subsystem</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Documentation/dmaengine/client.txt</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Documentation/dmaengine/provider.txt</span></code></p></li>
+<li><p><a class="reference external" href="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0424a/DDI0424A_dmac_pl330_r0p0_trm.pdf">ARM PL330 DMA Controller Manual</a></p></li>
+<li><p>详解 ARM 的 AMBA 设备中的 DMA 设备 PL08X 的 Linux 驱动: <a class="reference external" href="http://www.crifan.com/files/doc/docbook/dma_pl08x_analysis/release/htmls/index.html">http://www.crifan.com/files/doc/docbook/dma_pl08x_analysis/release/htmls/index.html</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dma-mapping">
+<h2>DMA Mapping<a class="headerlink" href="#dma-mapping" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>source code<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>include/linux/dma-mapping.h</p></li>
+<li><p>arch/arm/mm/dma-mapping.c: implement 4 type of dma_map_ops</p></li>
+</ul>
+<p>more: <a class="reference internal" href="dma_mapping.html"><span class="doc">DMA Mapping</span></a></p>
+</div>
+<div class="section" id="id2">
+<h3>document<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>(Laurent, 2014) [ELC2014] <a class="reference external" href="http://elinux.org/images/4/49/20140429-dma.pdf">Mastering the DMA and IOMMU API</a></p></li>
+<li><p><a class="reference external" href="http://www.makelinux.net/ldd3/?u=chp-15">LDD3 ch15 Memory Mapping and DMA</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Documentation/DMA-API-HOWTO.txt</span></code></p></li>
+<li><p>( 2011) [lwn] <a class="reference external" href="https://lwn.net/Articles/440221/">ARM, DMA, and memory management</a></p></li>
+<li><p>(Marek, Kyungmin, 2011, Samsung) [ELC Europe] <a class="reference external" href="http://elinux.org/images/7/7c/Elce11_szyprowski_park.pdf">ARM DMA-Mapping Framework Redesign and IOMMU integration</a></p>
+<ul>
+<li><p>Three different implementations merged together (<code class="docutils literal notranslate"><span class="pre">arch/arm/mm/dma-mapping.c</span></code>)</p>
+<ul>
+<li><p>linear non-coherent (most systems)</p></li>
+<li><p>linear coherent (noMMU and Intel ixp23xx)</p></li>
+<li><p>‘bounced’ for systems with restricted or limited/broken DMA engines</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>( 2014) <a class="reference external" href="http://linuxkernelhacker.blogspot.tw/2014/07/arm-dma-mapping-explained.html">ARM Dma-mapping Explained</a></p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Linux DMA</a><ul>
+<li><a class="reference internal" href="#dma-controller-engine">DMA Controller/Engine</a><ul>
+<li><a class="reference internal" href="#source-code">source code</a></li>
+<li><a class="reference internal" href="#document">document</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dma-mapping">DMA Mapping</a><ul>
+<li><a class="reference internal" href="#id1">source code</a></li>
+<li><a class="reference internal" href="#id2">document</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../dma.html">DMA note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="DMA.html">DMA Introduction</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Linux DMA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pl330.html">PL330 DMA Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma_mapping.html">DMA Mapping</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/dma/linux_dma.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

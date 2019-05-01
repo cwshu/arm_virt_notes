@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Alignment Fault &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="收集一些 ARM guest 時使用的 QEMU Commands" href="qemu_command.html" />
+    <link rel="prev" title="Misc" href="../misc.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="alignment-fault">
+<h1>Alignment Fault<a class="headerlink" href="#alignment-fault" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="terminology">
+<h2>terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>aligned memory access &amp; unaligned memory access</p>
+<ul>
+<li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/v4.12.5/source/Documentation/unaligned-memory-access.txt">Linux Kernel Doc - Unaligned Memory Access</a></p></li>
+<li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/v4.12.5/source/Documentation/arm/mem_alignment">Linux Kernel Doc - arm/mem_alignment</a></p></li>
+</ul>
+</li>
+<li><p>Alignment Fault: <a class="reference external" href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/Babcjcbe.html">ARM9 對 Alignment Fault 的定義</a></p></li>
+</ul>
+</div>
+<div class="section" id="arm-cpu">
+<h2>ARM CPU<a class="headerlink" href="#arm-cpu" title="Permalink to this headline">¶</a></h2>
+<p>滿多 RISC 的 CPU 並不完整支援 unaligned memory access, 比如說 ARM9 所有的 memory access instruction 都不支援.</p>
+<p>有一說是 ARMv5 (e.g. ARM9) 跟以前的 ARM CPU 不支援 unaligned memory access, ARMv6 以後 default 支援大部份的 aligned memory access:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">arch/arm/mm/alignment.c</span></code>: safe_usermode():</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ARMv6</span> <span class="ow">and</span> <span class="n">later</span> <span class="n">CPUs</span> <span class="n">can</span> <span class="n">perform</span> <span class="n">unaligned</span> <span class="n">accesses</span> <span class="k">for</span>
+<span class="n">most</span> <span class="n">single</span> <span class="n">load</span> <span class="ow">and</span> <span class="n">store</span> <span class="n">instructions</span> <span class="n">up</span> <span class="n">to</span> <span class="n">word</span> <span class="n">size</span><span class="o">.</span>
+<span class="n">LDM</span><span class="p">,</span> <span class="n">STM</span><span class="p">,</span> <span class="n">LDRD</span> <span class="ow">and</span> <span class="n">STRD</span> <span class="n">still</span> <span class="n">need</span> <span class="n">to</span> <span class="n">be</span> <span class="n">handled</span><span class="o">.</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">arch/arm/mm/alignment.c</span></code>: cpu_is_v6_unaligned():</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">return</span> <span class="n">cpu_architecture</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">CPU_ARCH_ARMv6</span> <span class="o">&amp;&amp;</span> <span class="n">get_cr</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">CR_U</span><span class="p">;</span>
+</pre></div>
+</div>
+<ul>
+<li><p>For ARMv6 and latter CPUs, it has CP15 c1 register U field.
+which represent “Enables unaligned data access operations for mixed little-endian and big-endian operation”.</p>
+<p>ref: <a class="reference external" href="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0338g/Babgdhif.html">ARM11_CP15_c1</a></p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">arch/arm/include/asm/cp15.h</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>ARMv8 的 normal memory 可以支援 unaligned memory access, 但 device memory 只支援 aligned memory access.</p>
+<ul>
+<li><p><a class="reference external" href="https://patchwork.kernel.org/patch/9556649/">[Linux Kernel patch] pstore/ram: Use memcpy_toio instead of memcpy</a></p></li>
+<li><p><a class="reference external" href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.den0024a/ch05s01s02.html">ARM Cortex-A Series Programmer’s Guide for ARMv8-A - Ch5.1 Addressing</a></p>
+<ul>
+<li><p><strong>Unaligned address support</strong></p>
+<blockquote>
+<div><p>Except for exclusive and ordered accesses:
+all loads and stores support the use of unaligned addresses when accessing normal memory.
+This simplifies porting code to A64.</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://www.willdeacon.ukfsn.org/bitbucket/armv8/aci-presentation-02-13.pdf">Porting Linux to a new Architecture - ARMv8 AArch64 Software Bring-up</a> p.23</p></li>
+</ul>
+</div>
+<div class="section" id="compiler-toolchain">
+<h2>Compiler/Toolchain<a class="headerlink" href="#compiler-toolchain" title="Permalink to this headline">¶</a></h2>
+<p>我撞到的狀況</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">strncpy()</span></code> 跟 <code class="docutils literal notranslate"><span class="pre">memset()</span></code> 會碰到 alignment fault, <code class="docutils literal notranslate"><span class="pre">memcpy()</span></code> 似乎不會.</p></li>
+</ul>
+<p>Detail</p>
+<ul>
+<li><p>strncpy() 的 len 為 5, 6, 7 或其他大於 8 但非 8 的倍數的常數時. 會碰到 alignment fault.</p>
+<ul>
+<li><p>strncpy() len &lt;= 8: gcc builtin strncpy():</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">strncpy</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;hello world</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+
+<span class="mi">400</span><span class="n">be4</span><span class="p">:</span>       <span class="n">f9401ba2</span>        <span class="n">ldr</span>     <span class="n">x2</span><span class="p">,</span> <span class="p">[</span><span class="n">x29</span><span class="p">,</span><span class="c1">#48]</span>
+<span class="mi">400</span><span class="n">be8</span><span class="p">:</span>       <span class="mi">90000000</span>        <span class="n">adrp</span>    <span class="n">x0</span><span class="p">,</span> <span class="mi">400000</span> <span class="o">&lt;</span><span class="n">_init</span><span class="o">-</span><span class="mh">0x620</span><span class="o">&gt;</span>
+<span class="mi">400</span><span class="n">bec</span><span class="p">:</span>       <span class="mf">9135e001</span>        <span class="n">add</span>     <span class="n">x1</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="c1">#0xd78</span>
+<span class="mi">400</span><span class="n">bf0</span><span class="p">:</span>       <span class="n">aa0203e0</span>        <span class="n">mov</span>     <span class="n">x0</span><span class="p">,</span> <span class="n">x2</span>
+<span class="mi">400</span><span class="n">bf4</span><span class="p">:</span>       <span class="n">b9400022</span>        <span class="n">ldr</span>     <span class="n">w2</span><span class="p">,</span> <span class="p">[</span><span class="n">x1</span><span class="p">]</span>
+<span class="mi">400</span><span class="n">bf8</span><span class="p">:</span>       <span class="n">b9000002</span>        <span class="nb">str</span>     <span class="n">w2</span><span class="p">,</span> <span class="p">[</span><span class="n">x0</span><span class="p">]</span>    <span class="c1"># aligned write to x0[0:4]</span>
+<span class="mi">400</span><span class="n">bfc</span><span class="p">:</span>       <span class="n">b8401021</span>        <span class="n">ldur</span>    <span class="n">w1</span><span class="p">,</span> <span class="p">[</span><span class="n">x1</span><span class="p">,</span><span class="c1">#1]</span>
+<span class="mi">400</span><span class="n">c00</span><span class="p">:</span>       <span class="n">b8001001</span>        <span class="n">stur</span>    <span class="n">w1</span><span class="p">,</span> <span class="p">[</span><span class="n">x0</span><span class="p">,</span><span class="c1">#1] # unaligned write to x0[1:5]</span>
+</pre></div>
+</div>
+</li>
+<li><p>strncpy() len &gt; 8: <a class="reference external" href="https://github.com/bminor/glibc/blob/master/string/strncpy.c#L27">glibc strncpy()</a></p>
+<ul class="simple">
+<li><p>問題點似乎在 <code class="docutils literal notranslate"><span class="pre">strncpy()</span></code> 裡的 <code class="docutils literal notranslate"><span class="pre">memset()</span></code>, 而且是 glibc aarch64 優化版的 <code class="docutils literal notranslate"><span class="pre">memset()</span></code></p></li>
+<li><p>gdb 收到 SIGBUS 時在 strncpy() 的 memset 裏面 (<code class="docutils literal notranslate"><span class="pre">../sysdep/aarch64/memset.S</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memset(str+13,</span> <span class="pre">'\0',</span> <span class="pre">3);</span></code> 可以重現 alignment fault.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="reference">
+<h2>reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://happyseeker.github.io/kernel/2016/02/26/alignment-fault-in-arm64.html">ARM64 环境中的对齐异常 (alignment fault) 问题</a></p>
+<ul>
+<li><p>memset 的 glibc 实现由于性能需要，使用了 DC ZVA 指令, 而 ARM64 架构中，DC ZVA 指令不能用于 device 类型的内存，否则就会触发 alignment fault 。</p></li>
+<li><p><a class="reference external" href="http://lists.infradead.org/pipermail/linux-arm-kernel/2015-May/341675.html">arm64:lib: Use Linaro’s memset routine to avoid DC instruction</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html">GCC builtin function</a></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">-fno-builtin</span></code> disable it.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Alignment Fault</a><ul>
+<li><a class="reference internal" href="#terminology">terminology</a></li>
+<li><a class="reference internal" href="#arm-cpu">ARM CPU</a></li>
+<li><a class="reference internal" href="#compiler-toolchain">Compiler/Toolchain</a></li>
+<li><a class="reference internal" href="#reference">reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../misc.html">Misc</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Alignment Fault</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_command.html">收集一些 ARM guest 時使用的 QEMU Commands</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/misc/alignment_fault.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

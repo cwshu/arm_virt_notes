@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>vhost net &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vhost-net">
+<h1>vhost net<a class="headerlink" href="#vhost-net" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>document</p>
+<ul>
+<li><p><a class="reference external" href="http://www.linux-kongress.org/2010/slides/KVM-Architecture-LK2010.pdf">KVM-Architecture-LK2010 slide p.18</a></p></li>
+<li><p><a class="reference external" href="http://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.htm">Stefan Hajnoczi - QEMU Internals: vhost architecture</a></p></li>
+<li><p><a class="reference external" href="http://blog.allenx.org/2015/07/05/kvm-irqfd-and-ioeventfd">gaowanlong - KVM irqfd and ioeventfd</a></p>
+<ul>
+<li><p><a class="reference external" href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=d34e6b175e61821026893ec5298cc8e7558df43a">ioeventfd patch</a></p></li>
+<li><p><a class="reference external" href="http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=721eecbf4fe995ca94a9edec0c9843b1cc0eaaf3">irqfd patch</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://blog.allenx.org/2013/09/09/vhost-architecture">gaowanlong - vhost architecture</a></p></li>
+<li><p><a class="reference external" href="http://royluo.org/2014/08/22/vhost/">RoyLuo’s Notes - vhost architecture</a></p></li>
+<li><p><a class="reference external" href="http://blog.csdn.net/majieyue/article/details/51262510">virtio 后端方案 vhost</a></p></li>
+<li><p>[PATCHv9 0/3] vhost: a kernel-level virtio server &lt;<a class="reference external" href="https://www.spinics.net/lists/kvm/msg25348.html">https://www.spinics.net/lists/kvm/msg25348.html</a>&gt;</p></li>
+</ul>
+</li>
+<li><p>vhost_net.ko</p>
+<ul>
+<li><p>Host user space opens and configures kernel helper</p></li>
+<li><p>virtio as guest-host interface</p></li>
+<li><p>KVM interface: eventfd</p>
+<ul>
+<li><p>TX trigger =&gt; ioeventfd</p></li>
+<li><p>RX signal  =&gt; irqfd</p></li>
+</ul>
+</li>
+<li><p>Linux interface via tap or macvtap</p></li>
+<li><p>future: multi-queue vhost-net</p></li>
+</ul>
+</li>
+</ul>
+<p><a class="reference external" href="http://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html">Stefan Hajnoczi - QEMU Internals: vhost architecture</a></p>
+<ul class="simple">
+<li><p>overview</p>
+<ul>
+<li><p>vhost driver provide in-kernel virtio devices for KVM.
+compare to QEMU, it can directly call into kernel subsystem without system call.</p></li>
+<li><p>vhost-net driver emulate virtio network card in the host kernel. (<code class="docutils literal notranslate"><span class="pre">driver/vhost/</span></code>)</p></li>
+</ul>
+</li>
+<li><p>driver model</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">/dev/vhost-net</span></code>, QEMU open and init it if parameter has <code class="docutils literal notranslate"><span class="pre">-netdev</span> <span class="pre">tap,vhost=on</span></code></p></li>
+<li><p>vhost-worker-thread (<code class="docutils literal notranslate"><span class="pre">vhost-&lt;pid&gt;</span></code>): (1) handle IO event (2) perform device emulation</p>
+<ul>
+<li><p>create at initialization time.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>in-kernel virtio emulation</p>
+<ul>
+<li><p>vhost doesn’t emulate complete virtio PCI adapter, it restrict itself to virtqueue ops only.</p></li>
+<li><p>vhost worker thread do IO:</p>
+<ul>
+<li><p>wait virtqueue kick, recieve packet from tx virtqueue.
+transmit over tap fd.</p></li>
+<li><p>do fd polling, wake up when packets come in over the tap fd.
+place packets to rx virtqueue</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>vhost as a userspace interface</p>
+<ul>
+<li><p>guest kick host 時, 需要有個方法通知 vhost worker thread.</p></li>
+<li><p>virtio 不依賴 KVM module. 所以要透過 eventfd 來通知.</p></li>
+<li><p>ioeventfd:</p></li>
+<li><p>irqfd: allow eventfd to trigger guest interrupts</p></li>
+</ul>
+</li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/vhost_net.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

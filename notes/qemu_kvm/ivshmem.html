@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ivshmem &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Memory Usage in ivshmem" href="ivshmem_memory.html" />
+    <link rel="prev" title="QEMU global var system_memory" href="system_memory.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="ivshmem">
+<h1>ivshmem<a class="headerlink" href="#ivshmem" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference external" href="http://nairobi-embedded.org/linux_pci_device_driver.html">Writing a Linux PCI Device Driver, A Tutorial with a QEMU Virtual Device</a></p></li>
+</ul>
+<p>現在情況:</p>
+<ul class="simple">
+<li><p>QEMU/KVM 可使用 ivshmem, guest 上有兩種方法去 access ivshmem.</p>
+<ul>
+<li><p>ARM64 會有 alignment access 的問題 (<a class="reference internal" href="../misc/alignment_fault.html"><span class="doc">Alignment Fault</span></a>)</p></li>
+</ul>
+</li>
+<li><p>ivshmem 將 shared memory 放置於 PCI BAR2. BAR2 的 (start, len) 即為 shared memory 的 (start, len).</p></li>
+</ul>
+<div class="section" id="guest-access-ivshmem-methods">
+<h2>guest access ivshmem methods<a class="headerlink" href="#guest-access-ivshmem-methods" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>用 <code class="docutils literal notranslate"><span class="pre">/dev/mem</span></code> 直接 hardcoded PCI BAR2 address, 可以 access 到 ivshmem</p>
+<ul class="simple">
+<li><p>取用 PCI BAR address:</p>
+<ul>
+<li><p>qemu monitor: <code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">pci</span></code></p></li>
+<li><p>guest linux kernel: <code class="docutils literal notranslate"><span class="pre">lspci</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>pci driver 使用 pci subsystem 的 API 獲得 BAR2 的 MMIO address, 然後封裝成一個 char device. 讓 userspace program 可以用 <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> char device 來 access ivshmem.</p></li>
+</ol>
+</div>
+<div class="section" id="id1">
+<h2>目前測試環境<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>host x86 pc, QEMU 2.9 + KVM + ivshmem legacy, guest x86 linux 4.4 (ubuntu 16.04)</p></li>
+<li><p>host aarch64 board(odroid c2), QEMU 2.9 + KVM + ivshmem legacy, guest aarch64 linux 4.4 (ubuntu 16.04)</p></li>
+</ol>
+</div>
+<div class="section" id="id2">
+<h2>資源跟重現<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>準備 QEMU 2.9, ubuntu 16.04 的 qcow2 image (e.g. <code class="docutils literal notranslate"><span class="pre">ubuntu_arm64.qcow2</span></code>)</p></li>
+<li><p>開一個 1M 大小的 POSIX shm: (e.g. <code class="docutils literal notranslate"><span class="pre">/dev/shm/hello</span></code>)</p>
+<ul class="simple">
+<li><p>可參考: <a class="reference external" href="https://github.com/u1240976/testing_code/tree/master/posix_shm">https://github.com/u1240976/testing_code/tree/master/posix_shm</a></p></li>
+</ul>
+</li>
+<li><p>run QEMU command with ivshmem:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span># ivshmem use 1M shm memory at /dev/shm/hello
+-device ivshmem,shm=hello,size=1
+
+# QEMU cmd (aarch64)
+$ qemu-system-aarch64 \
+  -enable-kvm -m 1024 -cpu host -smp 4 -M virt -nographic \
+  -bios ./QEMU_EFI.fd \
+  -drive id=hd0,media=disk,if=none,format=qcow2,file=ubuntu_arm64.qcow2 \
+  -device virtio-blk-device,drive=hd0 \
+  -netdev user,id=net0,hostfwd=tcp:127.0.0.1:50022-:22 \
+  -device virtio-net-pci,netdev=net0 \
+  -device ivshmem,shm=hello,size=1 \
+  -monitor telnet:127.0.0.1:60023,server,nowait
+</pre></div>
+</div>
+</li>
+<li><p>測試 ivshmem 是否成功開啟</p>
+<ul class="simple">
+<li><p>qemu monitor: <code class="docutils literal notranslate"><span class="pre">monitor)</span> <span class="pre">info</span> <span class="pre">pci</span></code></p></li>
+<li><p>guest linux shell: <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">lspci</span></code>, <code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">lspci</span> <span class="pre">-v</span> <span class="pre">-s</span> <span class="pre">00:04.0</span></code></p></li>
+</ul>
+</li>
+<li><p>access memory in guest OS</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/dev/mem</span></code> access: <code class="docutils literal notranslate"><span class="pre">./ivshmem_access</span></code></p></li>
+<li><p><a class="reference external" href="https://github.com/u1240976/ivshmem_test">pci driver access</a>: guest/</p></li>
+</ul>
+</li>
+</ol>
+<div class="section" id="reference">
+<h3>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="http://nairobi-embedded.org/linux_pci_device_driver.html">Writing a Linux PCI Device Driver, A Tutorial with a QEMU Virtual Device</a></p></li>
+<li><p><a class="reference external" href="http://www.linux-kvm.org/images/c/cc/2011-forum-nahanni.v5.for.public.pdf">ivshmem use case 介紹</a></p>
+<ul>
+<li><p>host/guest exchange file.</p></li>
+<li><p>memcached: host OS’s memcached pass through to multiple guest VM.</p></li>
+<li><p>MPI</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://blog.csdn.net/haitaoliang/article/details/22753423">ivshmem 实现分析与性能测试</a></p></li>
+<li><p><a class="reference external" href="https://github.com/qemu/qemu/blob/master/docs/specs/ivshmem-spec.txt">QEMU doc/ivshmem-spec.txt</a></p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ivshmem</a><ul>
+<li><a class="reference internal" href="#guest-access-ivshmem-methods">guest access ivshmem methods</a></li>
+<li><a class="reference internal" href="#id1">目前測試環境</a></li>
+<li><a class="reference internal" href="#id2">資源跟重現</a><ul>
+<li><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/ivshmem.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

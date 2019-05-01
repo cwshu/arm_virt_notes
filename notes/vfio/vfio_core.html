@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>VFIO implementation &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="VFIO details" href="vfio_core2.html" />
+    <link rel="prev" title="VFIO ARM resource" href="ARM_implementation.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vfio-implementation">
+<h1>VFIO implementation<a class="headerlink" href="#vfio-implementation" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>introduction</p></li>
+<li><p>VFIO basic</p></li>
+<li><p>VFIO functionality</p></li>
+<li><p>kernel VFIO APIs</p></li>
+<li><p>QEMU VFIO device (input device(sysfs))</p></li>
+<li><p>functionality</p></li>
+<li><p>portability issue: no-IOMMU and platform</p></li>
+</ul>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>VFIO 是一個 Linux Kernel 上面撰寫 userspace driver 的 kernel framework.
+為了讓 userspace process 可以跟 device 互動, kernel 必須將硬體的介面 pass-through 到 userspace.
+這些介面包含存取 MMIO 的 memory region, 接受 device 的 interrupt, 以及處理 virtual memory 跟 DMA 的相容性問題.</p>
+<p>VFIO 如果跟 QEMU/KVM 來整合使用的話, 則能做到 VM 的 device pass-through, 讓 guest OS driver 使用真實的硬體.</p>
+<p>以下的文章將會介紹 VFIO 如何對三種硬體介面進行 pass-through,
+如何跟 QEMU 結合後 pass-through 硬體介面到 VM 內部,
+最後是討論 VFIO 對於不同硬體的相容性問題.</p>
+</div>
+<div class="section" id="basic">
+<h2>Basic<a class="headerlink" href="#basic" title="Permalink to this headline">¶</a></h2>
+<p>VFIO 使用三種 fd 作為 userspace 的介面: container, group, 跟 device fd.
+對應的 Linux Kernel 實作為三組 file_operations: <code class="docutils literal notranslate"><span class="pre">vfio_fops</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_group_fops</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_device_fops</span></code>.</p>
+<p>VFIO 內部由三個部份所組成: VFIO core, VFIO bus driver, 跟 VFIO IOMMU driver.
+後兩個部份都有模組化, 並且可以抽換不同的實作來支援不同的硬體環境.
+VFIO IOMMU driver 的介面為 <code class="docutils literal notranslate"><span class="pre">vfio_iommu_driver</span></code>,
+VFIO bus driver 的介面為 <code class="docutils literal notranslate"><span class="pre">vfio_device_ops</span></code>.</p>
+<p>kernel 內部元件跟介面的關聯, 可以參考別人整理的一張圖.</p>
+<img alt="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/resource/BLOGS_UPLOADED_IMAGES/vfio_fig3.png" src="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/resource/BLOGS_UPLOADED_IMAGES/vfio_fig3.png" />
+<p>VFIO use stub driver to register HW resources, and pass through them to userspace.</p>
+</div>
+<div class="section" id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="mmio-region">
+<h3>MMIO Region<a class="headerlink" href="#mmio-region" title="Permalink to this headline">¶</a></h3>
+<p>對應於 linux driver programming 的 <code class="docutils literal notranslate"><span class="pre">request_mem_region()</span></code> + <code class="docutils literal notranslate"><span class="pre">ioremap()</span></code>.</p>
+<p>userspace driver 會先用 <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_REGION_INFO</span></code> API 拿出 device 的每個 MMIO region 的 metadata (fd_offset, size).
+vfio_device fd 的 <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> 會將這些 metadata 用於 parameter, 將這些 MMIO regions 從 physical memory map 到 process 的 virtual memory.</p>
+<p>實作上, vfio_device fd 的 <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> 只是建立 virtual memory to physical memory 的 mapping, 所以跟一般 process 的記憶體分配的實作是相同的.
+在 page table 加上對應的 entries 就可以做 address translation, 這邊的實作是使用 <code class="docutils literal notranslate"><span class="pre">remap_pfn_range()</span></code> 這套 API 對 page table 操作.</p>
+<p>順帶一提, <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> vfio_device fd 的技巧類似於 <code class="docutils literal notranslate"><span class="pre">/dev/mem</span></code> 的 <code class="docutils literal notranslate"><span class="pre">mmap()</span></code></p>
+<p>2 APIs</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_REGION_INFO</span></code></p></li>
+<li><p>mmap() vfio_device fd =&gt; <code class="docutils literal notranslate"><span class="pre">vfio_device_fops.mmap()</span></code></p></li>
+</ul>
+<p>internal</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pci_resource_start()</span></code>, <code class="docutils literal notranslate"><span class="pre">pci_resource_len()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_platform_region.addr</span></code> is HPA(Host Physical Address)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">remap_pfn_range()</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="interrupt">
+<h3>Interrupt<a class="headerlink" href="#interrupt" title="Permalink to this headline">¶</a></h3>
+<p>對應於 linux driver programming 的 <code class="docutils literal notranslate"><span class="pre">request_irq()</span></code>.</p>
+<p>userspace driver 會先用 <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_IRQ_INFO</span></code> API 拿出每個 IRQ 的 metadata.
+然後可以用 <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_SET_IRQ</span></code> 設定每個 IRQ 各自要 trigger 哪個 eventfd.
+設定完之後, 當 device 的 interrupt 發生時, 就可以透過對應的 eventfd 去通知 userspace driver.</p>
+<p>2 APIs</p>
+<ul class="simple">
+<li><p>VFIO_DEVICE_GET_IRQ_INFO: init</p></li>
+<li><p>VFIO_DEVICE_SET_IRQ: bind eventfd to vfio interrupt</p>
+<ul>
+<li><p>flag=VFIO_IRQ_SET_DATA_EVENTFD: 設定 IRQ 對應的 eventfd</p></li>
+<li><p>flag=VFIO_IRQ_SET_DATA_NONE: unregister VFIO IRQ handler.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="dma-and-iommu">
+<h3>DMA and IOMMU<a class="headerlink" href="#dma-and-iommu" title="Permalink to this headline">¶</a></h3>
+<p>userspace driver 先 <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> 好一段空間, 可以透過 <code class="docutils literal notranslate"><span class="pre">VFIO_IOMMU_MAP_DMA</span></code> 將這塊空間 mapping 到 IOMMU 上, 並且可指定 mapping 到 iova address.</p>
+<ul class="simple">
+<li><p>VFIO_IOMMU_MAP_DMA</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="vfio-apis">
+<h2>VFIO APIs<a class="headerlink" href="#vfio-apis" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>request = <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_INFO</span></code>, <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_REGION_INFO</span></code>, <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_IRQ_INFO</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ioctl(int</span> <span class="pre">fd,</span> <span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">request,</span> <span class="pre">void*</span> <span class="pre">argp)</span></code></p>
+<p>fd type: device fd</p>
+<p>這 3 個 API 用來讓 userspace driver 獲得 device 的 MMIO region 跟 IRQ number.
+API 內部實作會基於 bus type 而有不同, 但概念上都是 VFIO 會在 kernel 寫一個 stub driver.
+VFIO stub driver 會透過 Linux 的 driver API 獲得 MMIO region 跟 IRQ number 資訊, 並且將這些獲得的資訊傳回 userspace.</p>
+<p>舉例來說, platform bus 版本的 VFIO 就會透過 <code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code> 這套 platform driver 的 API 來得到 MMIO region 跟 IRQ number 的資訊.
+一般透過 device tree 獲得資訊的 platform driver, VFIO stub driver 應該也都能用相同方式獲得, 固 VFIO mechanism 可以正常運作.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mmap(void</span> <span class="pre">*addr,</span> <span class="pre">size_t</span> <span class="pre">length,</span> <span class="pre">int</span> <span class="pre">prot,</span> <span class="pre">int</span> <span class="pre">flags,</span> <span class="pre">int</span> <span class="pre">fd,</span> <span class="pre">off_t</span> <span class="pre">offset)</span></code></p>
+<p>fd type: device fd</p>
+</li>
+<li><p>request = <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_SET_IRQ</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">ioctl(int</span> <span class="pre">fd,</span> <span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">request,</span> <span class="pre">void*</span> <span class="pre">argp)</span></code></p>
+<p>fd type: device fd</p>
+<p>這個 API 同時含有很多種類的 IRQ 控制, 包含設定 eventfd, mask/unmask interrupt, 跟 trigger interrupt(eventfd).</p>
+<p>先介紹主功能的設定 eventfd, 這邊是在 VFIO stub driver 設定一個 interrupt handler.
+當硬體 interrupt 發生時, stub driver 的 interrupt handler 就會去 signal 一個 eventfd 給 userspace driver.
+該 eventfd 是由 userspace driver 透過 API 參數設定的.</p>
+<p>這個實作的效果是將對 kernel driver 觸發的 hardware interrupt 抽象化為對 userspace driver 觸發的 eventfd.
+由於抽象化的部份是由純軟體實作, 所以會有相對應的效能損失.</p>
+<p>其餘行為的部份, 該 API 的 flag 分成三種 action 跟三種 data.
+ACTION MASK / UNMASK 就是 mask/unmask interrupt 的功能, 不管 data flag.
+ACTION TRIGGER 的話就要在往下看 data flag,
+DATA EVENTFD 是主要功能, 設定 eventfd 及 stub driver 的 interrupt handler.
+DATA NONE 是刪除 eventfd, 並關閉 stub driver 的 interrupt handler.
+DATA BOOL 是直接 signal eventfd, 如同 trigger interrupt 的效果.</p>
+</li>
+<li><p>request = <code class="docutils literal notranslate"><span class="pre">VFIO_IOMMU_MAP_DMA</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">ioctl(int</span> <span class="pre">fd,</span> <span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">request,</span> <span class="pre">void*</span> <span class="pre">argp)</span></code></p>
+<p>fd type: container fd</p>
+<p>parameters: <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">vfio_iommu_type1_dma_map</span> <span class="pre">(in)</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">vfio_iommu_type1_dma_map</span> <span class="p">{</span>
+    <span class="n">__u32</span>   <span class="n">argsz</span><span class="p">;</span>
+    <span class="n">__u32</span>   <span class="n">flags</span><span class="p">;</span>
+    <span class="n">__u64</span>   <span class="n">vaddr</span><span class="p">;</span>  <span class="o">/*</span> <span class="n">Process</span> <span class="n">virtual</span> <span class="n">address</span> <span class="o">*/</span>
+    <span class="n">__u64</span>   <span class="n">iova</span><span class="p">;</span>   <span class="o">/*</span> <span class="n">IO</span> <span class="n">virtual</span> <span class="n">address</span> <span class="o">*/</span>
+    <span class="n">__u64</span>   <span class="n">size</span><span class="p">;</span>   <span class="o">/*</span> <span class="n">Size</span> <span class="n">of</span> <span class="n">mapping</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">)</span> <span class="o">*/</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="qemu-vfio-device">
+<h2>QEMU VFIO device<a class="headerlink" href="#qemu-vfio-device" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="source-code">
+<h2>source code 參考<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>可參考 <a class="reference external" href="https://github.com/virtualopensystems/vfio-host-test">https://github.com/virtualopensystems/vfio-host-test</a></p>
+<ul>
+<li><p>driver1 vfio_api_example? (<code class="docutils literal notranslate"><span class="pre">src_test/vfio_device_test.c</span></code>): <code class="docutils literal notranslate"><span class="pre">vfio_utils.c</span></code> 是通用的 API 包裝.</p></li>
+<li><p>driver2 pl330 (<code class="docutils literal notranslate"><span class="pre">src_test/pl330/test_pl330_vfio_driver.c</span></code>)</p></li>
+</ul>
+</li>
+<li><p>linux</p>
+<ul>
+<li><p>VFIO core: <code class="docutils literal notranslate"><span class="pre">driver/vfio/vfio.c</span></code></p></li>
+<li><p>VFIO bus driver: <code class="docutils literal notranslate"><span class="pre">driver/vfio/pci/vfio_pci.c</span></code>, <code class="docutils literal notranslate"><span class="pre">driver/vfio/platform/vfio_platform_common.c</span></code></p></li>
+<li><p>VFIO IOMMU driver: <code class="docutils literal notranslate"><span class="pre">driver/vfio/vfio_iommu_type1.c</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">VFIO implementation</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#basic">Basic</a></li>
+<li><a class="reference internal" href="#functionality">Functionality</a><ul>
+<li><a class="reference internal" href="#mmio-region">MMIO Region</a></li>
+<li><a class="reference internal" href="#interrupt">Interrupt</a></li>
+<li><a class="reference internal" href="#dma-and-iommu">DMA and IOMMU</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#vfio-apis">VFIO APIs</a></li>
+<li><a class="reference internal" href="#qemu-vfio-device">QEMU VFIO device</a></li>
+<li><a class="reference internal" href="#source-code">source code 參考</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../vfio.html">VFIO</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="resource.html">VFIO resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARM_implementation.html">VFIO ARM resource</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VFIO implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core2.html">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/vfio/vfio_core.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

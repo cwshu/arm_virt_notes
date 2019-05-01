@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>收集一些 ARM guest 時使用的 QEMU Commands &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="Alignment Fault" href="alignment_fault.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="arm-guest-qemu-commands">
+<h1>收集一些 ARM guest 時使用的 QEMU Commands<a class="headerlink" href="#arm-guest-qemu-commands" title="Permalink to this headline">¶</a></h1>
+<p>我用 ubuntu server 在 odroid 的測試:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">enable</span><span class="o">-</span><span class="n">kvm</span> <span class="o">-</span><span class="n">cpu</span> <span class="n">host</span> \       <span class="c1"># [kvm/tcg]</span>
+    <span class="o">-</span><span class="n">M</span> <span class="n">virt</span> <span class="o">-</span><span class="n">bios</span> <span class="n">QEMU_EFI</span><span class="o">.</span><span class="n">fd</span> \   <span class="c1"># ARM 環境大多需要</span>
+    <span class="o">-</span><span class="n">m</span> <span class="mi">1024</span> <span class="o">-</span><span class="n">smp</span> <span class="mi">4</span> \              <span class="c1"># 資源分配, 不影響相容性. ram 太少會跑很慢.</span>
+    <span class="o">-</span><span class="n">nographic</span> \                  <span class="c1"># 圖像, -std vga 在 arm 上好像不太 work. 可以試試看 vnc</span>
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">id</span><span class="o">=</span><span class="n">cdrom1</span><span class="p">,</span><span class="n">media</span><span class="o">=</span><span class="n">cdrom</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="n">file</span><span class="o">=../</span><span class="n">images</span><span class="o">/</span><span class="n">ubuntu</span><span class="o">-</span><span class="mf">16.04</span><span class="o">.</span><span class="mi">1</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">arm64</span><span class="o">.</span><span class="n">iso</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">scsi</span><span class="o">-</span><span class="n">device</span> <span class="o">-</span><span class="n">device</span> <span class="n">scsi</span><span class="o">-</span><span class="n">cd</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">cdrom1</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">id</span><span class="o">=</span><span class="n">hd0</span><span class="p">,</span><span class="n">media</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">format</span><span class="o">=</span><span class="n">qcow2</span><span class="p">,</span><span class="n">file</span><span class="o">=</span><span class="n">ubuntu_arm64</span><span class="o">.</span><span class="n">qcow2</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">hd0</span> \
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">user</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">user</span> <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">user</span>
+</pre></div>
+</div>
+<p>odroid_c2 wiki kvm example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">enable</span><span class="o">-</span><span class="n">kvm</span> <span class="o">-</span><span class="n">cpu</span> <span class="n">host</span> \
+    <span class="o">-</span><span class="n">M</span> <span class="n">virt</span> <span class="o">-</span><span class="n">bios</span> <span class="n">QEMU_EFI</span><span class="o">.</span><span class="n">fd</span> \
+    <span class="o">-</span><span class="n">smp</span> <span class="mi">2</span> <span class="o">-</span><span class="n">m</span> <span class="mi">1024</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">image</span><span class="p">,</span><span class="n">file</span><span class="o">=</span><span class="n">xenial</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">cloudimg</span><span class="o">-</span><span class="n">arm64</span><span class="o">-</span><span class="n">uefi1</span><span class="o">.</span><span class="n">img</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">image</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">cloud</span><span class="p">,</span><span class="n">file</span><span class="o">=</span><span class="n">cloud</span><span class="o">.</span><span class="n">img</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">cloud</span> \
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">user</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">user</span> <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">user</span>
+</pre></div>
+</div>
+<p>buildroot:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">cpu</span> <span class="n">cortex</span><span class="o">-</span><span class="n">a57</span> \
+    <span class="o">-</span><span class="n">machine</span> <span class="n">virt</span> <span class="o">-</span><span class="n">machine</span> <span class="nb">type</span><span class="o">=</span><span class="n">virt</span> \
+    <span class="o">-</span><span class="n">smp</span> <span class="mi">1</span> <span class="o">-</span><span class="n">m</span> <span class="mi">2048</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">kernel</span> <span class="n">aarch64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="mf">3.15</span><span class="n">rc2</span><span class="o">-</span><span class="n">buildroot</span><span class="o">.</span><span class="n">img</span>  <span class="o">--</span><span class="n">append</span> <span class="s2">&quot;console=ttyAMA0&quot;</span>
+
+<span class="c1"># access local file-system</span>
+<span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">cpu</span> <span class="n">cortex</span><span class="o">-</span><span class="n">a57</span> \
+    <span class="o">-</span><span class="n">machine</span> <span class="n">virt</span> <span class="o">-</span><span class="n">machine</span> <span class="nb">type</span><span class="o">=</span><span class="n">virt</span> \
+    <span class="o">-</span><span class="n">smp</span> <span class="mi">1</span> <span class="o">-</span><span class="n">m</span> <span class="mi">2048</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">kernel</span> <span class="n">aarch64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="mf">3.15</span><span class="n">rc2</span><span class="o">-</span><span class="n">buildroot</span><span class="o">.</span><span class="n">img</span> <span class="o">--</span><span class="n">append</span> <span class="s2">&quot;console=ttyAMA0&quot;</span> \
+    <span class="o">-</span><span class="n">fsdev</span> <span class="n">local</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">r</span><span class="p">,</span><span class="n">path</span><span class="o">=/</span><span class="n">home</span><span class="o">/</span><span class="n">alex</span><span class="o">/</span><span class="n">lsrc</span><span class="o">/</span><span class="n">qemu</span><span class="o">/</span><span class="n">rootfs</span><span class="o">/</span><span class="n">trusty</span><span class="o">-</span><span class="n">core</span><span class="p">,</span><span class="n">security_model</span><span class="o">=</span><span class="n">none</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="mi">9</span><span class="n">p</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">fsdev</span><span class="o">=</span><span class="n">r</span><span class="p">,</span><span class="n">mount_tag</span><span class="o">=</span><span class="n">r</span>
+</pre></div>
+</div>
+<p>別人用 qemu-system-aarch64 emulate, rootfs 用 archlinux arm generic:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">cpu</span> <span class="n">cortex</span><span class="o">-</span><span class="n">a57</span> \
+    <span class="o">-</span><span class="n">M</span> <span class="n">virt</span> <span class="o">-</span><span class="n">bios</span> <span class="n">QEMU_EFI</span><span class="o">.</span><span class="n">fd</span> \
+    <span class="o">-</span><span class="n">m</span> <span class="mi">2048</span> <span class="o">-</span><span class="n">smp</span> <span class="mi">1</span> \
+    <span class="o">-</span><span class="n">serial</span> <span class="n">stdio</span> \
+    <span class="o">-</span><span class="n">kernel</span> <span class="n">mnt</span><span class="o">/</span><span class="n">boot</span><span class="o">/</span><span class="n">Image</span> <span class="o">-</span><span class="n">initrd</span> <span class="n">mnt</span><span class="o">/</span><span class="n">boot</span><span class="o">/</span><span class="n">initramfs</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">fallback</span><span class="o">.</span><span class="n">img</span> \
+    <span class="o">-</span><span class="n">append</span> <span class="s2">&quot;root=/dev/vda1&quot;</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="n">file</span><span class="o">=</span><span class="n">disk</span><span class="o">.</span><span class="n">img</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">hd0</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">hd0</span>
+
+    <span class="c1"># extend</span>
+    <span class="o">-</span><span class="n">initrd</span> <span class="n">mnt</span><span class="o">/</span><span class="n">boot</span><span class="o">/</span><span class="n">initramfs</span><span class="o">-</span><span class="n">linux</span><span class="o">.</span><span class="n">img</span>
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">format</span><span class="o">=</span><span class="n">raw</span>
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">user</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">unet</span> <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">unet</span>
+</pre></div>
+</div>
+<p>debootstrap:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">cpu</span> <span class="n">cortex</span><span class="o">-</span><span class="n">a57</span> \
+    <span class="o">-</span><span class="n">machine</span> <span class="nb">type</span><span class="o">=</span><span class="n">virt</span> \
+    <span class="o">-</span><span class="n">smp</span> <span class="mi">1</span> <span class="o">-</span><span class="n">m</span> <span class="mi">8192</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">kernel</span> <span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">chroots</span><span class="o">/</span><span class="n">vmlinuz</span><span class="o">-</span><span class="mf">3.13</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">34</span><span class="o">-</span><span class="n">generic</span> <span class="o">-</span><span class="n">initrd</span> <span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">chroots</span><span class="o">/</span><span class="n">initrd</span><span class="o">.</span><span class="n">img</span><span class="o">-</span><span class="mf">3.13</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">34</span><span class="o">-</span><span class="n">generic</span> \
+    <span class="o">--</span><span class="n">append</span> <span class="s2">&quot;root=/dev/vda1 rw console=ttyAMA0 --&quot;</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="n">file</span><span class="o">=/</span><span class="n">srv</span><span class="o">/</span><span class="n">chroots</span><span class="o">/</span><span class="n">trusty</span><span class="o">.</span><span class="n">qcow2</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">blk</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">blk</span> \
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">tap</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">net0</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">net0</span><span class="p">,</span><span class="n">mac</span><span class="o">=</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span> \
+</pre></div>
+</div>
+<div class="section" id="note">
+<h2>Note<a class="headerlink" href="#note" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>ARM guest 很需要 <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">virt</span> <span class="pre">-bios</span> <span class="pre">QEMU_EFI.fd</span></code>, <code class="docutils literal notranslate"><span class="pre">QEMU_EFI.fd</span></code> 來自 Linaro</p></li>
+<li><p>ARM guest 的 vga 情況可能跟 x86 完全不同, 目前只有 <code class="docutils literal notranslate"><span class="pre">-nographic</span></code> 可以正常顯示圖像</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-serial</span> <span class="pre">stdio</span></code> 可以正常顯示 kernel log 沒問題.</p></li>
+</ul>
+</li>
+<li><p>cdrom 用 virtio-scsi-device + scsi-cd, disk(img, qcow2) 用 virtio-blk-device</p></li>
+<li><p>virtio-net-device</p></li>
+</ol>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">收集一些 ARM guest 時使用的 QEMU Commands</a><ul>
+<li><a class="reference internal" href="#note">Note</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../misc.html">Misc</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="alignment_fault.html">Alignment Fault</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">收集一些 ARM guest 時使用的 QEMU Commands</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/misc/qemu_command.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linux Device Driver &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Linux Network Driver" href="net_driver/linux_net_driver.html" />
+    <link rel="prev" title="Linux Kernel Event Tracing in KVM" href="qemu_kvm/tracepoint.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="linux-device-driver">
+<h1>Linux Device Driver<a class="headerlink" href="#linux-device-driver" title="Permalink to this headline">¶</a></h1>
+<p>device driver and network driver basic</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="net_driver/linux_net_driver.html">Linux Network Driver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#document">Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#napi-note">NAPI Note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#napi-api">NAPI API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#napi-more">NAPI more</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#content">Content</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#content2">Content2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html#additional-questions">Additional Questions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dma/driver_io.html">Hardware IO in linux driver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html#outline">Outline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html#request-mem-region">request_mem_region</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html#ioremap-internal">ioremap internal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html#devm-device-resource-management">devm: device resource management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dma/ch10.html">Ch10 Interrupt Handling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html#installing-an-interrupt-handler">Installing an Interrupt Handler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html#implementing-a-handler">Implementing a Handler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html#top-and-bottom-halves">Top and Bottom Halves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html#interrupt-sharing">Interrupt Sharing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html#interrupt-driven-i-o">Interrupt-Driven I/O</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="net_driver/platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/platform_dtb.html#apis">APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/platform_dtb.html#device-tree-format">device tree format</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>tracing stmmac driver</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="net_driver/stmmac_note.html">STMicro ethernet driver note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note.html#source-file-and-config">Source File and Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note.html#data-structure">Data Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note.html#control-flow">Control Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note.html#other-info">Other Info</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="net_driver/stmmac_note2.html">STMicro ethernet driver note 2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note2.html#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Linux Device Driver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="net_driver/stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/notes/device_driver.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

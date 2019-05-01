@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU/KVM note &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="QEMU system init" href="qemu_kvm/qemu_init.html" />
+    <link rel="prev" title="ARM SoC Device Assignment Notes" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-kvm-note">
+<h1>QEMU/KVM note<a class="headerlink" href="#qemu-kvm-note" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="qemu-basic">
+<h2>QEMU Basic<a class="headerlink" href="#qemu-basic" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_init.html">QEMU system init</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_init.html#basic">Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_init.html#machine-init">Machine Init</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_init.html#device-init">Device Init</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_init.html#code-detail-and-note">Code detail and Note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_init.html#reference">reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/QOM1.html">QEMU Object Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/QOM1.html#basic-example">Basic Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/QOM1.html#q-a1">Q&amp;A1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/QOM1.html#qom-internal">QOM Internal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/QOM1.html#qdev">QDev</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/QOM1.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_glib.html">QEMU GLib dependencies</a></li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="memory">
+<h2>Memory<a class="headerlink" href="#memory" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_memory.html">QEMU Memory Management</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory.html#mmio-exit-handling">MMIO exit handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory.html#memorylistener-and-memoryregion-transaction">MemoryListener and MemoryRegion transaction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory.html#note-of-global-variable">Note of global variable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory.html#more">More</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory.html#qemu-memory-doc">QEMU memory doc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_memory_kml.html">KVMMemoryListener</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory_kml.html#interface">Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory_kml.html#contents">Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory_kml.html#kvm-memory-api">KVM memory API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_memory_kml.html#misc">Misc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/system_memory.html">QEMU global var <code class="docutils literal notranslate"><span class="pre">system_memory</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/system_memory.html#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="ivshmem">
+<h2>ivshmem<a class="headerlink" href="#ivshmem" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/ivshmem.html">ivshmem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem.html#guest-access-ivshmem-methods">guest access ivshmem methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem.html#id1">目前測試環境</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem.html#id2">資源跟重現</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html">Memory Usage in ivshmem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html#ivshmem-cli-option">ivshmem CLI option</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html#desugar-shm-create-memoryregion">desugar_shm(): create <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html#register-memoryregion-as-pci-bar2">register <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> as PCI BAR2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html#pci-framework">PCI framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/ivshmem_memory.html#details">Details</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_ivshmem.html">ivshmem source code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_ivshmem.html#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="qemu-net">
+<h2>QEMU Net<a class="headerlink" href="#qemu-net" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_net.html">QEMU Network</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_net.html#introduction-architecture">introduction(architecture)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_net.html#qemu-send-packet-netclientinfo">qemu_send_packet() 跟 NetClientInfo</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>virtual network devices</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/e1000_device.html">QEMU e1000 Device Emulation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/e1000_device.html#e1000-keynote">e1000 keynote</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/e1000_device.html#e1000-tx">e1000 TX</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/e1000_device.html#misc">Misc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/virtio_net.html">Virtio Network</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/virtio_net.html#virtio-net-qemu-device">virtio-net qemu device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/virtio_net.html#virtio-net-kernel-driver">virtio-net kernel driver</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>network backends (尚缺 tap network)</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/slirp.html">QEMU Slirp Network Backend</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/slirp.html#slirp-input">slirp_input()</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>in-kernel emulation: <a class="reference internal" href="qemu_kvm/vhost_net.html"><span class="doc">vhost-net</span></a>, <a class="reference internal" href="qemu_kvm/irqfd.html"><span class="doc">irqfd source analysis</span></a></p>
+</div></blockquote>
+</div>
+<div class="section" id="qemu-misc">
+<h2>QEMU Misc<a class="headerlink" href="#qemu-misc" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html">QEMU/KVM architecture overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html#qemu-process-model-qemu-and-guest-os">Qemu process model (Qemu and Guest OS)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html#event-driven-multi-threaded">Event-driven multi-threaded</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html#host-guest-device-emulation-split">host/guest device emulation split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html#virtio-devices">virtio devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_misc_note.html#vhost-in-kernel-devices">vhost in-kernel devices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/qemu_thread_event.html">QEMU thread and event model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_thread_event.html#doc1">doc1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/qemu_thread_event.html#doc2">doc2</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="kvm">
+<h2>KVM<a class="headerlink" href="#kvm" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/run_and_exit.html">KVM run and exit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/oenhen_part2_3.html">Oenhan KVM note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/oenhen_part2_3.html#part2-vm-run">Part2 VM RUN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/oenhen_part2_3.html#part3-cpu-virtualization">Part3 CPU Virtualization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/kvm_resources.html">KVM source code resource</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/kvm_resources.html#resource">resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/kvm_resources.html#misc">Misc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm/tracepoint.html">Linux Kernel Event Tracing in KVM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qemu_kvm/tracepoint.html#reference">reference</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU/KVM note</a><ul>
+<li><a class="reference internal" href="#qemu-basic">QEMU Basic</a></li>
+<li><a class="reference internal" href="#memory">Memory</a></li>
+<li><a class="reference internal" href="#ivshmem">ivshmem</a></li>
+<li><a class="reference internal" href="#qemu-net">QEMU Net</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#qemu-misc">QEMU Misc</a></li>
+<li><a class="reference internal" href="#kvm">KVM</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">QEMU/KVM note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/notes/qemu_kvm.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

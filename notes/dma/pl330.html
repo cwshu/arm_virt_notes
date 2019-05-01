@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>PL330 DMA Controller &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="DMA Mapping" href="dma_mapping.html" />
+    <link rel="prev" title="Linux DMA" href="linux_dma.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="pl330-dma-controller">
+<h1>PL330 DMA Controller<a class="headerlink" href="#pl330-dma-controller" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="hw-spec">
+<h2>HW Spec<a class="headerlink" href="#hw-spec" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>PL330 DMA Controller Manual: <a class="reference external" href="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0424a/DDI0424A_dmac_pl330_r0p0_trm.pdf">http://infocenter.arm.com/help/topic/com.arm.doc.ddi0424a/DDI0424A_dmac_pl330_r0p0_trm.pdf</a></p></li>
+</ul>
+<p>PL330 DMAC HW has 4 interface</p>
+<ul class="simple">
+<li><p>APB interface: connected to AXI bus than connected to CPU. CPU programming MMIO by APB</p>
+<ul>
+<li><p>secure and Non-secure APB interface</p></li>
+<li><p>map IO register to memory, each APB allocate 4KB memory</p></li>
+</ul>
+</li>
+<li><p>interrupt output: connected to CPU. DMAC send completion interrupt by this</p></li>
+<li><p>AXI master interface: connected to AXI bus. DMAC do a memory transfer by this. (issue load/store instruction)</p></li>
+<li><p>peripheral request interface: connected to DMA-capable peripherals. To enable memory-to-peripheral DMA transfer and vice versa.</p></li>
+</ul>
+<p>DMA instruction set</p>
+<ul class="simple">
+<li><p>DMAC includes small instruction set to specifying DMA operations flexibly.</p></li>
+<li><p>greater flexibility than LLI(Linked-List Item) based DMAC.</p></li>
+<li><p>variable-length instructions: minimize program memory.</p></li>
+</ul>
+<p>Func Overview</p>
+<ul class="simple">
+<li><p>Instruction execute: DMAC has instruction processing block(HW): process code controls DMA transfer.</p></li>
+<li><p>Memory: code is store in system memory, DMAC access memory by AXI interface.</p></li>
+<li><p>Cache: DMAC temporarily store instructions in cache.</p></li>
+<li><p>DMA Channel</p>
+<ul>
+<li><p>Each channel has single concurrent thread of DMA operations</p></li>
+<li><p>Each channel has single PC(Program Counter)</p></li>
+</ul>
+</li>
+<li><p>Instruction buffer: a DMA channel execute load/store instruction. DMAC add instruction to instruction storage buffer(queue), and then issuing instruction on AXI bus</p></li>
+<li><p>Data buffer: DMAC use MFIFO(Multi First-In-First-Out) data buffer to store data it reads/writes.</p></li>
+</ul>
+<p>[Manual Ch4 DMA instruction set]</p>
+<ul class="simple">
+<li><p>DMAADDH: set value(16-bits) of source/dest address register. used for memcpy</p></li>
+<li><p>DMALD, DMALDP</p></li>
+<li><p>DMAST, DMASTP</p></li>
+<li><p>DMAEND: end signal that DMA seq is complete. end of DMA channel thread</p></li>
+</ul>
+<p>[Manual Ch2.3 Operating states]</p>
+<ul class="simple">
+<li><p>PL330_STATE_FAULT_COMPLETING (DMAC state machine)</p></li>
+</ul>
+<p>[Manual Ch3 Programmer Model, DMAC Register]</p>
+<ul class="simple">
+<li><p>4KB Memory split into 6 sections</p>
+<ul>
+<li><p>Control Registers</p></li>
+<li><p>DMA channel thread Status Register: 8 channel status + channel PC</p></li>
+<li><p>AXI and loop counter Status Register: loop counter 0 + 1 for 8 channels</p></li>
+<li><p>Debug Register</p></li>
+<li><p>Configuration Register: CR0 ~ 4, CRDn</p></li>
+<li><p>PrimeCell ID Register: periph_id_n, pcell_id_n</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="source-code">
+<h2>Source Code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>drivers/dma/pl330.c</p></li>
+<li><p>struct pl330_dmac:</p>
+<ul>
+<li><p>base // io register mem, readl(), writel(), devm_ioremap_resource()</p></li>
+<li><p>descriptor pool // resource pool</p></li>
+<li><p>pcfg // config</p></li>
+<li><p>channels, manager // all channel threads and manager threads</p></li>
+<li><p>events // event/irq, _alloc_event(), 把 event 分給某個 dma thread</p></li>
+<li><p>mcode_cpu, mcode_bus // microcode buffer in cpu/bus address, dma_alloc_coherent() buffer</p></li>
+</ul>
+</li>
+<li><p>struct pl330_thread: pl330 DMA Channel thread</p></li>
+<li><p>struct dma_pl330_chan</p>
+<ul>
+<li><p>inherit dma_chan</p></li>
+<li><p>3 descriptor list: submitted, work, completed</p></li>
+<li><p>config: fifo_addr, burst, cyclic</p></li>
+<li><p>linux tasklet</p></li>
+<li><p>dmac, dma thread id</p></li>
+</ul>
+</li>
+<li><p>struct dma_pl330_desc</p>
+<ul>
+<li><p>inherit dma_async_tx_descriptor</p></li>
+<li><p>inherit list_head</p></li>
+<li><p>px // pl330_xfer</p></li>
+<li><p>rqcfg, rqdirection, peri (peripheral id)</p></li>
+<li><p>desc_status</p></li>
+</ul>
+</li>
+</ul>
+<p>DMA Initial config/resource allocation</p>
+<ul class="simple">
+<li><p>pl330_probe() =&gt; pl330_add()</p>
+<ul>
+<li><p>read_dmac_config()</p></li>
+<li><p>dmac_alloc_resource()</p></li>
+<li><p>pl330_dotask()</p></li>
+</ul>
+</li>
+</ul>
+<p>Interrupt handling</p>
+<ul class="simple">
+<li><p>pl330_irq_handler() =&gt; pl330_update()</p>
+<ul>
+<li><p>check FSM</p></li>
+<li><p>check FSC</p></li>
+<li><p>check ES(Event Status)</p>
+<ul>
+<li><p>clear interrupt</p></li>
+<li><p>detach the req, and _start() ??</p></li>
+<li><p>after _start(), set descriptor done ??</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>5 API</p>
+<ul class="simple">
+<li><p>Channel: pl330_request_channel:</p>
+<ul>
+<li><p>從 dma_device 下面 8 個 channel (pl330_thread) 找一個空缺的來初始化並回傳, 並從 8 個 event 找一個空缺的給該 channel thread 使用.</p></li>
+</ul>
+</li>
+<li><p>Config: 取出 src/dst addr, addr_width, max_burst, 放入 dma_pl330_chan 的 members</p>
+<ul>
+<li><p>per DMA Channel 的 config</p></li>
+</ul>
+</li>
+<li><p>Prep descriptor: 把指令填入 dma_pl330_desc 的 px ( pl330_xfer ) 當中</p></li>
+<li><p>Submit descriptor</p>
+<ul>
+<li><p>pl330_descriptor 是個 linked-list (many descriptors)</p></li>
+<li><p>把整個 linked-list 放入 al330_chan 的 submitted_list 裏面.</p></li>
+</ul>
+</li>
+<li><p>Issue pending:</p>
+<ul>
+<li><p>把 submitted_list 裡的 descriptor 全部放入 work_list</p></li>
+<li><p>pl330_tasklet()</p>
+<ul>
+<li><p>把 work_list 中 DONE status 的 desc 移到 completed_list</p></li>
+<li><p>fill_queue(): for desc in work_list: fill DMA instruction into microcode buffer</p></li>
+<li><p>_start(pch-&gt;thread) or _stop(pch-&gt;thread)</p></li>
+<li><p>// complete request</p></li>
+<li><p>執行 completed_list 上 desc 的 callback</p></li>
+<li><p>把 pch-&gt;completed_list 上的 desc, 設定成 free status 並回收回 dmac 的 desc_pool</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Start/Stop</p>
+<ul class="simple">
+<li><p>_start =&gt; _trigger =&gt; enable interrupt, _emit_GO() + _execute_DBGINSN()</p></li>
+<li><p>_stop =&gt; _emit_KILL() + _execute_DBGINSN()</p></li>
+</ul>
+<p>Fill DMA instructions:</p>
+<ul class="simple">
+<li><p>fill_queue =&gt; pl330_submit_req =&gt; _setup_req =&gt; _setup_xfer =&gt; _setup_loops</p>
+<ul>
+<li><p>_setup_loop =&gt; _loop =&gt; _burst</p></li>
+<li><p>_burst =&gt;</p>
+<ul>
+<li><p>_ldst_memtomem</p></li>
+<li><p>_ldst_devtomem</p></li>
+<li><p>_ldst_memtodev</p></li>
+<li><p>=&gt; _emit_&lt;instr&gt;</p></li>
+</ul>
+</li>
+<li><p>req is a sequence of one or more xfer unit</p></li>
+<li><p>_prepare_ccr</p></li>
+</ul>
+</li>
+</ul>
+<p>Execute Instruction</p>
+<ul class="simple">
+<li><p>1: _emit_&lt;instr&gt; + _execute_DBGINSN</p></li>
+<li><p>2: _emit_&lt;instr&gt; in microcode buffer, _start() pl330 thread</p></li>
+<li><p>p.s. _emit_&lt;instr&gt;: _emit_LDP, _emit_KILL</p></li>
+</ul>
+<p>HW interface and Resource</p>
+<ul class="simple">
+<li><p>iomem* base // IO Register base address</p>
+<ul>
+<li><p>devm_ioremap_resource()</p></li>
+<li><p>MMIO registers</p>
+<ul>
+<li><p>Debug instr, cmd, status</p></li>
+<li><p>interrupt enable</p></li>
+<li><p>check, clear interrupt</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>mcbuf // microcode buffer</p>
+<ul>
+<li><p>dma_alloc_coherent()</p></li>
+<li><p>store DMA instruction</p></li>
+</ul>
+</li>
+<li><p>descriptor pool</p></li>
+</ul>
+<div class="section" id="misc">
+<h3>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h3>
+<p>Descriptor Pool</p>
+<ul class="simple">
+<li><p>from dmac-&gt;desc_pool</p></li>
+<li><p>pl330_get_desc(): allocate new desc of this channel.</p>
+<ul>
+<li><p>pluck_desc()</p></li>
+<li><p>dma_async_tx_descriptor_init()</p></li>
+</ul>
+</li>
+</ul>
+<p>pl330_request_channel()</p>
+<ul class="simple">
+<li><p>_manager_ns(): if manager thread is non-secure</p></li>
+<li><p>_chan_ns(): pl330-&gt;pcfg.irq_ns</p></li>
+<li><p>_alloc_event(): linear search pl330-&gt;events array, find empty event</p></li>
+</ul>
+<p>tiny functions, macros</p>
+<ul class="simple">
+<li><p>_emit_LDP() =&gt; emit CMD_DMALDP. [Manual Ch4 DMA instruction set]</p></li>
+<li><p>PL330_STATE_FAULT_COMPLETING (DMAC state machine) [Manual Ch2.3 Operating states]</p></li>
+</ul>
+<p>Linux Knowledge</p>
+<ul class="simple">
+<li><p>list, container_of</p></li>
+<li><p>tasklet</p></li>
+<li><p>device resources: drivers/base/resources.c</p>
+<ul>
+<li><p>devm_kmalloc()</p></li>
+<li><p>devm_ioremap_resource()</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="prepare">
+<h3>Prepare<a class="headerlink" href="#prepare" title="Permalink to this headline">¶</a></h3>
+<p>tiny functions, macros</p>
+<ul class="simple">
+<li><p>_emit_LDP() =&gt; emit CMD_DMALDP. [Manual Ch4 DMA instruction set]</p></li>
+<li><p>PL330_STATE_FAULT_COMPLETING (DMAC state machine) [Manual Ch2.3 Operating states]</p></li>
+</ul>
+<p>load/store</p>
+<ul class="simple">
+<li><p>_ldst_memtomem</p></li>
+<li><p>_ldst_devtomem</p></li>
+<li><p>_ldst_memtodev</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PL330 DMA Controller</a><ul>
+<li><a class="reference internal" href="#hw-spec">HW Spec</a></li>
+<li><a class="reference internal" href="#source-code">Source Code</a><ul>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+<li><a class="reference internal" href="#prepare">Prepare</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../dma.html">DMA note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="DMA.html">DMA Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linux_dma.html">Linux DMA</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">PL330 DMA Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dma_mapping.html">DMA Mapping</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/dma/pl330.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

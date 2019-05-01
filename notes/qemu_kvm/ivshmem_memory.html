@@ -1,0 +1,245 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Memory Usage in ivshmem &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ivshmem source code" href="qemu_ivshmem.html" />
+    <link rel="prev" title="ivshmem" href="ivshmem.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="memory-usage-in-ivshmem">
+<h1>Memory Usage in ivshmem<a class="headerlink" href="#memory-usage-in-ivshmem" title="Permalink to this headline">¶</a></h1>
+<p>ivshmem 處理 shared memory 的原理, 簡單來說就是.</p>
+<ul class="simple">
+<li><p>ivshmem 建立了一個 RAM type 的 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 來封裝 host OS 上的 shared memory.</p></li>
+<li><p>ivshmem 將該 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 註冊成自己 PCI device 的 BAR2.
+QEMU PCI framework 會將所有 PCI device 的 BAR 加入到 <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> 當中, 進行 guest OS memory 的管理.</p></li>
+<li><p>當 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 被加入到 <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> 時, QEMU 就會透過 KVM API 對 guest OS 的記憶體進行對應的操作.
+舉例來說操作可能是在 page table 建立 memory mapping 或是為了 trap-and-emulate 而把 page table 的 mapping 刪掉, 這根據 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 的 type 決定.
+ivshmem 這邊的操作則是將 shared memory mapping 到 guest OS 的記憶體.</p>
+<ul>
+<li><p>細節可參考: <a class="reference internal" href="qemu_memory.html#mr-transaction"><span class="std std-ref">MemoryListener and MemoryRegion transaction</span></a></p></li>
+</ul>
+</li>
+</ul>
+<p>接下來就個別講解細節.</p>
+<div class="section" id="ivshmem-cli-option">
+<h2>ivshmem CLI option<a class="headerlink" href="#ivshmem-cli-option" title="Permalink to this headline">¶</a></h2>
+<p>ivshmem CLI option 包含 shared memory 的路徑跟大小, 這兩個資料會被傳入 IVShmemState 的 class member 當中.</p>
+<ul>
+<li><p>CLI option: <code class="docutils literal notranslate"><span class="pre">-device</span> <span class="pre">ivshmem,shm=hello,size=1</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">IVShmemState</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">IVShmemState</span><span class="o">-&gt;</span><span class="n">shmobj</span> <span class="o">=</span> <span class="s2">&quot;hello&quot;</span> <span class="o">//</span> <span class="n">shm</span>
+<span class="n">IVShmemState</span><span class="o">-&gt;</span><span class="n">sizearg</span> <span class="o">=</span> <span class="mi">1</span>      <span class="o">//</span> <span class="n">size</span>
+</pre></div>
+</div>
+</li>
+<li><p>細節請參考: <a class="reference internal" href="QOM1.html#qdev-property"><span class="std std-ref">device parameters</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="desugar-shm-create-memoryregion">
+<h2>desugar_shm(): create <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code><a class="headerlink" href="#desugar-shm-create-memoryregion" title="Permalink to this headline">¶</a></h2>
+<p>Create <code class="docutils literal notranslate"><span class="pre">TYPE_MEMORY_BACKEND_FILE</span></code> and <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> by <code class="docutils literal notranslate"><span class="pre">IVShmemState-&gt;shmobj</span></code>.
+Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> to <code class="docutils literal notranslate"><span class="pre">IVShmemState-&gt;hostmem</span></code>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hostmem</span> <span class="pre">=</span> <span class="pre">object_new(TYPE_MEMORY_BACKEND_FILE)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hostmem-&gt;properties[&quot;mem-path&quot;]</span> <span class="pre">=</span> <span class="pre">&quot;/dev/shm/&quot;</span> <span class="pre">+</span> <span class="pre">IVShmemState-&gt;shmobj</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_creatable_complete(hostmem)</span></code></p>
+<ol class="loweralpha simple">
+<li><p>create <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mmap()</span></code> file to QEMU process memory</p></li>
+</ol>
+</li>
+</ul>
+</div>
+<div class="section" id="register-memoryregion-as-pci-bar2">
+<h2>register <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> as PCI BAR2<a class="headerlink" href="#register-memoryregion-as-pci-bar2" title="Permalink to this headline">¶</a></h2>
+<p>ivshmem 將該 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 註冊成自己 PCI device 的 BAR2.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">IVShmemState-&gt;ivshmem_bar2</span> <span class="pre">=</span> <span class="pre">host_memory_backend_get_memory(IVShmemState-&gt;hostmem)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pci_register_bar(PCI_DEVICE(s),</span> <span class="pre">2,</span> <span class="pre">attr,</span> <span class="pre">IVShmemState-&gt;ivshmem_bar2);</span></code></p></li>
+</ul>
+<p>Then, we should dig into QEMU PCI framework.</p>
+</div>
+<div class="section" id="pci-framework">
+<h2>PCI framework<a class="headerlink" href="#pci-framework" title="Permalink to this headline">¶</a></h2>
+<p>QEMU PCI framework 會將所有 PCI device 的 BAR 加入到 <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> 當中, 進行 guest OS memory 的管理.</p>
+<ul class="simple">
+<li><p>pci_register_bar(): 把 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 的資料放到 pci_dev-&gt;io_region[bar_num]</p></li>
+<li><p>pci_update_mapping():</p>
+<ul>
+<li><p>更新 pci_dev-&gt;io_region[bar_num], 將該 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 加入 <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> 當中 (<code class="docutils literal notranslate"><span class="pre">memory_region_add_subregion()</span></code>)</p></li>
+<li><p>memory_region_add_subregion_overlap(r-&gt;address_space, r-&gt;addr, r-&gt;memory, 1); // PCIIORegion* r;</p></li>
+<li><p>PCI device 使用的 address_space 為何?</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PCIIORegion-&gt;address_space</span></code> is from <code class="docutils literal notranslate"><span class="pre">PCIBus-&gt;address_space_{mem,io}</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PCIBus-&gt;address_space_mem</span></code> is init at PCI Host Bridge start</p></li>
+</ul>
+</li>
+<li><p>More: <a class="reference internal" href="qemu_memory.html#mr-transaction"><span class="std std-ref">MemoryListener and MemoryRegion transaction</span></a>, <a class="reference internal" href="qemu_memory_kml.html"><span class="doc">KVMMemoryListener</span></a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="details">
+<h2>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>TYPE_MEMORY_BACKEND_FILE:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">user_creatable_complete</span><span class="p">()</span> <span class="n">create</span> <span class="n">MemoryRegion</span> <span class="ow">and</span> <span class="n">do</span> <span class="n">mmap</span><span class="p">()</span>
+<span class="n">user_creatable_complete</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">host_memory_backend_memory_complete</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">file_backend_memory_alloc</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">memory_region_init_ram_from_file</span><span class="p">()</span>
+
+<span class="o">//</span> <span class="n">inheritance</span><span class="p">:</span> <span class="n">TYPE_MEMORY_BACKEND_FILE</span> <span class="o">=&gt;</span> <span class="n">TYPE_MEMORY_BACKEND</span> <span class="o">=&gt;</span> <span class="n">TYPE_OBJECT</span>
+<span class="p">[</span><span class="n">TYPE_MEMORY_BACKEND</span><span class="p">]</span> <span class="n">UserCreatableClass</span><span class="o">*</span> <span class="n">ucc</span><span class="o">-&gt;</span><span class="n">complete</span> <span class="o">=</span> <span class="n">host_memory_backend_memory_complete</span>
+<span class="p">[</span><span class="n">TYPE_MEMORY_BACKEND_FILE</span><span class="p">]</span> <span class="n">HostMemoryBackendClass</span><span class="o">*</span> <span class="n">bc</span><span class="o">-&gt;</span><span class="n">alloc</span> <span class="o">=</span> <span class="n">file_backend_memory_alloc</span>
+
+<span class="n">host_memory_backend_memory_complete</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">bc</span><span class="o">-&gt;</span><span class="n">alloc</span><span class="p">()</span> <span class="o">=</span> <span class="n">file_backend_memory_alloc</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">memory_region_init_ram_from_file</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p>pci_{set,get}_{byte,word,…}: pointer dereference with endianness.</p></li>
+</ol>
+<p>struct</p>
+<ul class="simple">
+<li><p>PCIDevice</p>
+<ul>
+<li><p>PCIIORegion io_regions[]; // all PCI BAR, each element of array is single PCI BAR</p></li>
+<li><p>PCIBus bus;</p></li>
+<li><p>uint8_t* config; // PCI config space. each PCI BAR has some space.</p></li>
+<li><p>uint8_t* wmask, cmask;</p></li>
+</ul>
+</li>
+<li><p>PCIIORegion</p>
+<ul>
+<li><p>pcibus_t addr, size; // MMIO region, addr may equal to PCI_BAR_UNMAPPED;</p></li>
+<li><p>MemoryRegion memory; // one PCI BAR maps to one QEMU MemoryRegion</p></li>
+<li><p>MemoryRegion address_space; // one of pci_dev-&gt;bus-&gt;address_space_{mem,io}</p></li>
+</ul>
+</li>
+<li><p>PCIBus</p>
+<ul>
+<li><p>MemoryRegion address_space_io, address_space_mem;</p></li>
+<li><p>init at PCI Host Bridge (e.g. <code class="docutils literal notranslate"><span class="pre">i440fx_init()</span></code>)</p></li>
+</ul>
+</li>
+</ul>
+<p>misc: gdb print MemoryRegion linked list:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">gdb</span><span class="p">)</span> <span class="n">memory_region_p</span> <span class="n">mr</span><span class="o">-&gt;</span><span class="n">subregions</span><span class="o">-&gt;</span><span class="n">tqh_first</span>
+<span class="n">MemoryRegion</span> <span class="s1">&#39;kvm-apic-msi&#39;</span><span class="p">:</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="o">/</span><span class="mi">100000</span><span class="p">,</span> <span class="n">is_ram</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_ro</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="n">fee00000</span><span class="p">,</span> <span class="n">callback</span> <span class="n">addr</span> <span class="mh">0x555555eeae00</span>
+<span class="p">(</span><span class="n">gdb</span><span class="p">)</span> <span class="n">memory_region_p</span> <span class="n">mr</span><span class="o">-&gt;</span><span class="n">subregions</span><span class="o">-&gt;</span><span class="n">tqh_first</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span>
+<span class="n">MemoryRegion</span> <span class="s1">&#39;ram-above-4g&#39;</span><span class="p">:</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="o">/</span><span class="mi">40000000</span><span class="p">,</span> <span class="n">is_ram</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_ro</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="mi">100000000</span><span class="p">,</span> <span class="n">callback</span> <span class="n">addr</span> <span class="mh">0x555555ee6780</span>
+<span class="p">(</span><span class="n">gdb</span><span class="p">)</span> <span class="n">memory_region_p</span> <span class="n">mr</span><span class="o">-&gt;</span><span class="n">subregions</span><span class="o">-&gt;</span><span class="n">tqh_first</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span>
+<span class="n">MemoryRegion</span> <span class="s1">&#39;ram-below-4g&#39;</span><span class="p">:</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="o">/</span><span class="n">c0000000</span><span class="p">,</span> <span class="n">is_ram</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_ro</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="mi">0</span><span class="p">,</span> <span class="n">callback</span> <span class="n">addr</span> <span class="mh">0x555555ee6780</span>
+<span class="p">(</span><span class="n">gdb</span><span class="p">)</span> <span class="n">memory_region_p</span> <span class="n">mr</span><span class="o">-&gt;</span><span class="n">subregions</span><span class="o">-&gt;</span><span class="n">tqh_first</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span><span class="o">-&gt;</span><span class="n">subregions_link</span><span class="o">.</span><span class="n">tqe_next</span>
+<span class="n">MemoryRegion</span> <span class="s1">&#39;pci&#39;</span><span class="p">:</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="p">,</span> <span class="n">is_ram</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_ro</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="mi">0</span><span class="p">,</span> <span class="n">callback</span> <span class="n">addr</span> <span class="mh">0x555555ee6780</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Memory Usage in ivshmem</a><ul>
+<li><a class="reference internal" href="#ivshmem-cli-option">ivshmem CLI option</a></li>
+<li><a class="reference internal" href="#desugar-shm-create-memoryregion">desugar_shm(): create <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code></a></li>
+<li><a class="reference internal" href="#register-memoryregion-as-pci-bar2">register <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> as PCI BAR2</a></li>
+<li><a class="reference internal" href="#pci-framework">PCI framework</a></li>
+<li><a class="reference internal" href="#details">Details</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/ivshmem_memory.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

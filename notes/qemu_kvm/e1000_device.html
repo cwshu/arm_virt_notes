@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU e1000 Device Emulation &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Virtio Network" href="virtio_net.html" />
+    <link rel="prev" title="QEMU Network" href="qemu_net.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-e1000-device-emulation">
+<h1>QEMU e1000 Device Emulation<a class="headerlink" href="#qemu-e1000-device-emulation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="e1000-keynote">
+<h2>e1000 keynote<a class="headerlink" href="#e1000-keynote" title="Permalink to this headline">¶</a></h2>
+<p>Interface between QEMU e1000 device and other modules.</p>
+<ul class="simple">
+<li><p>e1000 device to network backend (e.g. slirp or tap)</p>
+<ul>
+<li><p>e1000 send packets to network backend by <code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code>.
+Slirp backend send packets by <code class="docutils literal notranslate"><span class="pre">send()</span></code> syscall.</p></li>
+<li><p>e1000 recieve packets from network backend by <code class="docutils literal notranslate"><span class="pre">NetClientInfo.receive()</span></code> callback.
+Slirp backend recieve packets by <code class="docutils literal notranslate"><span class="pre">poll()</span></code> or <code class="docutils literal notranslate"><span class="pre">recv()</span></code> syscall.</p></li>
+</ul>
+</li>
+<li><p>e1000 device to guest OS driver</p>
+<ul>
+<li><p>e1000 device handles MMIO access by <code class="docutils literal notranslate"><span class="pre">MemoryRegion.ops.{read(),</span> <span class="pre">write()}</span></code></p></li>
+<li><p>e1000 device send virtual interrupt to guest OS by <code class="docutils literal notranslate"><span class="pre">set_ics()</span></code> or <code class="docutils literal notranslate"><span class="pre">set_interrupt_cause()</span></code>
+( based on <code class="docutils literal notranslate"><span class="pre">pci_set_irq()</span></code>. All PCI devices can use this API to send VIRQ. )</p></li>
+<li><p>e1000 HW registers</p>
+<ul>
+<li><p>e1000 device access them by access <code class="docutils literal notranslate"><span class="pre">mac_reg</span></code> register array.</p></li>
+<li><p>Guest driver access them by MMIO, e1000 emulates register access: <code class="docutils literal notranslate"><span class="pre">MemoryRegion.ops.write()</span> <span class="pre">=&gt;</span> <span class="pre">macreg_writeops[reg]()</span></code></p></li>
+</ul>
+</li>
+<li><p>e1000 DMA descriptors (TX/RX ring)</p>
+<ul>
+<li><p>Pointed from e1000 HW registers: <code class="docutils literal notranslate"><span class="pre">mac_reg[TDH]</span></code>, <code class="docutils literal notranslate"><span class="pre">mac_reg[RDH]</span></code> …</p></li>
+<li><p>Guest driver use simple memory access, device use emulated DMA accessing.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>e1000 相關 reference</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://pdos.csail.mit.edu/6.828/2014/readings/hardware/8254x_GBe_SDM.pdf">e1000 datasheet</a></p></li>
+</ul>
+</div>
+<div class="section" id="e1000-tx">
+<h2>e1000 TX<a class="headerlink" href="#e1000-tx" title="Permalink to this headline">¶</a></h2>
+<p>Whenever guest driver accesses <code class="docutils literal notranslate"><span class="pre">TCTL</span></code> and <code class="docutils literal notranslate"><span class="pre">TDT</span></code> HW registers, it will trigger e1000 device to send packet.
+QEMU e1000 device copy packets from TX Ring at guest memory, it copies data by DMA emulation.
+Then, QEMU send packet by network backend API.
+After sending packet, QEMU send completion interrupt to notify guest OS by KVM virtual interrupt.</p>
+<p>QEMU e1000 device implements <code class="docutils literal notranslate"><span class="pre">start_xmit()</span></code> to send packets.</p>
+<div class="section" id="e1000-start-xmit-dataflow">
+<h3>e1000 start_xmit() dataflow<a class="headerlink" href="#e1000-start-xmit-dataflow" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>DMA emulation: use <code class="docutils literal notranslate"><span class="pre">pci_dma_read()</span></code> to copy data from TX Ring to <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">e1000_tx*</span> <span class="pre">tp</span></code>.</p></li>
+<li><p>send packet by network backend: calls <code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code> to send packet from <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">e1000_tx*</span> <span class="pre">tp</span></code>.</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">process_tx_desc</span><span class="p">(</span><span class="n">E1000State</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="n">struct</span> <span class="n">e1000_tx_desc</span> <span class="o">*</span><span class="n">dp</span><span class="p">)</span>
+   <span class="o">//</span> <span class="n">struct</span> <span class="n">e1000_tx</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">tx</span><span class="p">;</span>
+   <span class="o">//</span> <span class="n">pci_dma_read</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">+</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">);</span>
+
+<span class="o">=&gt;</span> <span class="n">xmit_seg</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+   <span class="o">//</span> <span class="n">struct</span> <span class="n">e1000_tx</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">tx</span><span class="p">;</span>
+<span class="o">=&gt;</span> <span class="n">e1000_send_packet</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="n">qemu_send_packet</span><span class="p">(</span><span class="n">qemu_get_queue</span><span class="p">(</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">nic</span><span class="p">),</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>How QEMU emulates DMA?</p>
+<ol class="arabic simple">
+<li><p>emulated DMA access ( <code class="docutils literal notranslate"><span class="pre">pci_dma_read()</span></code> ) is equal to guest address space access. ( AddressSpace API <code class="docutils literal notranslate"><span class="pre">address_space_rw()</span></code> )</p></li>
+<li><p>target AS is <code class="docutils literal notranslate"><span class="pre">PCIDevice.bus_master_as</span></code></p></li>
+<li><p>If target MR is <code class="docutils literal notranslate"><span class="pre">system_memory</span></code>, QEMU use <code class="docutils literal notranslate"><span class="pre">memcpy()</span></code> to emulate it.
+Address translation from GPA to HVA is processed at translation from AS to MR, it is SW translation. I don’t know <code class="docutils literal notranslate"><span class="pre">address_space_translate()</span></code> has cache or not.</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pci_dma_read</span><span class="p">(</span><span class="n">PCIDevice</span> <span class="o">*</span><span class="n">dev</span><span class="p">,</span> <span class="n">dma_addr_t</span> <span class="n">addr</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">dma_addr_t</span> <span class="nb">len</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="n">dma_memory_rw</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">bus_master_as</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">DMA_DIRECTION_TO_DEVICE</span><span class="p">);</span>
+<span class="o">=&gt;</span> <span class="n">address_space_rw</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dev</span><span class="o">-&gt;</span><span class="n">bus_master_as</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">MEMTXATTRS_UNSPECIFIED</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">false</span><span class="p">):</span>
+
+<span class="n">calls</span> <span class="n">memcpy</span><span class="p">()</span> <span class="n">because</span> <span class="n">mr</span> <span class="ow">is</span> <span class="n">system_memory</span> <span class="p">(</span><span class="n">memory_region</span> <span class="n">alias</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>e1000’s <code class="docutils literal notranslate"><span class="pre">bus_master_as</span></code> is a alias to <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> in the experiment.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">monitor</span><span class="p">)</span> <span class="n">info</span> <span class="n">mtree</span>
+<span class="n">address</span><span class="o">-</span><span class="n">space</span><span class="p">:</span>
+  <span class="mi">0000000000000000</span><span class="o">-</span><span class="n">ffffffffffffffff</span> <span class="p">(</span><span class="n">prio</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">/</span><span class="n">o</span><span class="p">):</span> <span class="n">bus</span> <span class="n">master</span> <span class="n">container</span>
+    <span class="mi">0000000000000000</span><span class="o">-</span><span class="n">ffffffffffffffff</span> <span class="p">(</span><span class="n">prio</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">/</span><span class="n">o</span><span class="p">):</span> <span class="n">alias</span> <span class="n">bus</span> <span class="n">master</span> <span class="nd">@system</span> <span class="mi">0000000000000000</span><span class="o">-</span><span class="n">ffffffffffffffff</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="e1000-sending-completion-interrupt">
+<h3>e1000 sending completion interrupt<a class="headerlink" href="#e1000-sending-completion-interrupt" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">start_xmit()</span></code> send packet by <code class="docutils literal notranslate"><span class="pre">process_tx_desc()</span></code> and send completion interrupt by <code class="docutils literal notranslate"><span class="pre">set_ics()</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">set_ics()</span></code> send VIRQ by <code class="docutils literal notranslate"><span class="pre">pci_set_irq()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">set_ics</span><span class="p">(</span><span class="n">E1000State</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="nb">int</span> <span class="n">index</span><span class="p">,</span> <span class="n">uint32_t</span> <span class="n">val</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="n">set_interrupt_cause</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mac_reg</span><span class="p">[</span><span class="n">ICR</span><span class="p">])</span>
+   <span class="o">=&gt;</span> <span class="n">pci_set_irq</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mit_irq_level</span><span class="p">);</span>
+
+<span class="n">set_interrupt_cause</span><span class="p">(</span><span class="n">E1000State</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="nb">int</span> <span class="n">index</span><span class="p">,</span> <span class="n">uint32_t</span> <span class="n">val</span><span class="p">)</span>
+<span class="o">//</span> <span class="n">PCIDevice</span> <span class="o">*</span><span class="n">d</span> <span class="o">=</span> <span class="n">PCI_DEVICE</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+
+<span class="o">//</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mac_reg</span><span class="p">[</span><span class="n">ICR</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mac_reg</span><span class="p">[</span><span class="n">ICS</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">;</span>
+<span class="o">//</span> <span class="n">pending_ints</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">mac_reg</span><span class="p">[</span><span class="n">IMS</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mac_reg</span><span class="p">[</span><span class="n">ICR</span><span class="p">]);</span>
+<span class="o">//</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mit_irq_level</span> <span class="o">=</span> <span class="p">(</span><span class="n">pending_ints</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+<span class="o">=&gt;</span> <span class="n">pci_set_irq</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="o">-&gt;</span><span class="n">mit_irq_level</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">PCIDevice::pci_set_irq()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pci_set_irq</span><span class="p">(</span><span class="n">PCIDevice</span> <span class="o">*</span><span class="n">pci_dev</span><span class="p">,</span> <span class="nb">int</span> <span class="n">level</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="n">pci_irq_handler</span><span class="p">(</span><span class="n">pci_dev</span><span class="p">,</span> <span class="n">pci_intx</span><span class="p">(</span><span class="n">pci_dev</span><span class="p">),</span> <span class="n">level</span><span class="p">);</span>
+   <span class="o">=&gt;</span> <span class="n">pci_set_irq_state</span><span class="p">():</span> <span class="nb">set</span> <span class="n">pci_dev</span><span class="o">-&gt;</span><span class="n">irq_state</span> <span class="n">to</span> <span class="p">(</span><span class="n">level</span><span class="o">&lt;&lt;</span><span class="n">irq_num</span><span class="p">)</span>
+   <span class="o">=&gt;</span> <span class="n">pci_update_irq_status</span><span class="p">():</span> <span class="n">turn</span> <span class="n">on</span><span class="o">/</span><span class="n">off</span> <span class="mi">1</span> <span class="n">bit</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">dev</span><span class="o">-&gt;</span><span class="n">config</span><span class="p">[</span><span class="n">PCI_STATUS</span><span class="p">]</span><span class="s1">&#39;s PCI_STATUS_INTERRUPT bit.</span>
+   <span class="o">=&gt;</span> <span class="n">pci_change_irq_level</span><span class="p">(</span><span class="n">PCIDevice</span> <span class="o">*</span><span class="n">pci_dev</span><span class="p">,</span> <span class="nb">int</span> <span class="n">irq_num</span><span class="p">,</span> <span class="nb">int</span> <span class="n">change</span><span class="p">)</span>
+      <span class="o">//</span> <span class="n">recursively</span> <span class="n">find</span> <span class="n">PCIBus</span> <span class="p">(</span><span class="n">pci_dev</span><span class="o">-&gt;</span><span class="n">bus</span><span class="p">)</span> <span class="ow">and</span> <span class="n">parent</span> <span class="n">device</span> <span class="p">(</span><span class="n">bus</span><span class="o">-&gt;</span><span class="n">parent_dev</span><span class="p">),</span> <span class="n">until</span> <span class="n">bus</span><span class="o">-&gt;</span><span class="n">set_irq</span> <span class="n">exist</span>
+      <span class="o">//</span> <span class="n">irq</span> <span class="n">number</span> <span class="n">mapping</span> <span class="n">recursively</span><span class="p">:</span> <span class="n">irq_num</span> <span class="o">=</span> <span class="n">bus</span><span class="o">-&gt;</span><span class="n">map_irq</span><span class="p">(</span><span class="n">pci_dev</span><span class="p">,</span> <span class="n">irq_num</span><span class="p">);</span>
+      <span class="o">=&gt;</span> <span class="n">bus</span><span class="o">-&gt;</span><span class="n">set_irq</span><span class="p">(</span><span class="n">bus</span><span class="o">-&gt;</span><span class="n">irq_opaque</span><span class="p">,</span> <span class="n">irq_num</span><span class="p">,</span> <span class="n">bus</span><span class="o">-&gt;</span><span class="n">irq_count</span><span class="p">[</span><span class="n">irq_num</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">PCIBus::set_irq()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">pci_bus_irqs</span><span class="p">()</span> <span class="ow">and</span> <span class="n">pci_register_bus</span><span class="p">()</span> <span class="n">register</span> <span class="n">set_irqs</span>
+
+<span class="o">//</span> <span class="n">PCI</span> <span class="n">host</span> <span class="n">bridges</span><span class="s1">&#39;s set_irqs</span>
+<span class="o">//</span>   <span class="n">i440fx</span> <span class="n">use</span> <span class="n">PIIX</span><span class="p">:</span>
+<span class="o">//</span>     <span class="n">i440fx_init</span><span class="p">()</span> <span class="n">register</span> <span class="n">piix3_set_irq</span><span class="p">():</span>
+<span class="o">//</span>     <span class="n">pci_bus_irqs</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">piix3_set_irq</span><span class="p">,</span> <span class="n">pci_slot_get_pirq</span><span class="p">,</span> <span class="n">piix3</span><span class="p">,</span> <span class="n">PIIX_NUM_PIRQS</span><span class="p">);</span>
+<span class="o">//</span>   <span class="n">Q35</span><span class="p">:</span>
+<span class="o">//</span>     <span class="n">pc_q35_init</span><span class="p">()</span> <span class="n">register</span> <span class="n">ich9_lpc_set_irq</span><span class="p">()</span>
+<span class="o">//</span>   <span class="n">ARM</span> <span class="n">virt</span> <span class="n">use</span> <span class="n">GPEX</span><span class="p">:</span>
+<span class="o">//</span>     <span class="n">gpex_host_realize</span><span class="p">()</span> <span class="n">register</span> <span class="n">gpex_set_irq</span><span class="p">()</span>
+
+<span class="n">gpex_set_irq</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">opaque</span><span class="p">,</span> <span class="nb">int</span> <span class="n">irq_num</span><span class="p">,</span> <span class="nb">int</span> <span class="n">level</span><span class="p">)</span>
+<span class="o">=&gt;</span> <span class="n">qemu_set_irq</span><span class="p">(</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">irq</span><span class="p">[</span><span class="n">irq_num</span><span class="p">],</span> <span class="n">level</span><span class="p">);</span>
+   <span class="o">//</span> <span class="n">qemu_set_irq</span><span class="p">(</span><span class="n">qemu_irq</span> <span class="n">irq</span><span class="p">,</span> <span class="nb">int</span> <span class="n">level</span><span class="p">)</span>
+   <span class="o">=&gt;</span> <span class="n">irq</span><span class="o">-&gt;</span><span class="n">handler</span><span class="p">(</span><span class="n">irq</span><span class="o">-&gt;</span><span class="n">opaque</span><span class="p">,</span> <span class="n">irq</span><span class="o">-&gt;</span><span class="n">n</span><span class="p">,</span> <span class="n">level</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">qemu_irq-&gt;handler</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu_irq</span> <span class="o">==</span> <span class="n">IRQState</span><span class="p">,</span> <span class="n">IRQState</span><span class="o">-&gt;</span><span class="n">handler</span> <span class="ow">is</span> <span class="n">qemu_irq_handler</span>
+
+<span class="o">//</span> <span class="k">for</span> <span class="n">GPEX_HOST</span> <span class="ow">in</span> <span class="n">machvirt</span> <span class="n">machine</span>
+<span class="o">//</span> <span class="n">GPEX_HOST</span><span class="s1">&#39;s qemu_irq = KVM_ARM_GIC&#39;</span><span class="n">s</span> <span class="n">qemu_irq</span> <span class="o">=</span> <span class="n">kvm_arm_gicv2_set_irq</span>
+
+<span class="n">machvirt_init</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">create_gic</span><span class="p">(</span><span class="n">VirtMachineState</span> <span class="o">*</span><span class="n">vms</span><span class="p">,</span> <span class="n">qemu_irq</span> <span class="o">*</span><span class="n">pic</span><span class="p">)</span>
+   <span class="o">//</span> <span class="n">create</span> <span class="n">KVM_ARM_GIC</span><span class="p">,</span> <span class="nb">set</span> <span class="n">kvm_arm_gicv2_set_irq</span> <span class="n">to</span> <span class="n">pic</span>
+   <span class="o">=&gt;</span> <span class="n">kvm_arm_gic_realize</span><span class="p">()</span>
+      <span class="o">=&gt;</span> <span class="n">gic_init_irqs_and_mmio</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">kvm_arm_gicv2_set_irq</span><span class="p">,</span> <span class="n">NULL</span><span class="p">);</span>
+         <span class="o">//</span> <span class="n">DeviceState</span><span class="o">-&gt;</span><span class="n">gpios</span> <span class="o">=</span> <span class="n">kvm_arm_gicv2_set_irq</span>
+   <span class="o">=&gt;</span> <span class="n">pic</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">qdev_get_gpio_in</span><span class="p">(</span><span class="n">gicdev</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+      <span class="o">//</span> <span class="n">pic</span> <span class="o">=</span> <span class="n">DeviceState</span><span class="o">-&gt;</span><span class="n">gpios</span>
+
+<span class="o">=&gt;</span> <span class="n">create_pcie</span><span class="p">(</span><span class="n">VirtMachineState</span> <span class="o">*</span><span class="n">vms</span><span class="p">,</span> <span class="n">qemu_irq</span> <span class="o">*</span><span class="n">pic</span><span class="p">)</span>
+   <span class="o">//</span> <span class="n">create</span> <span class="n">GPEX_HOST</span><span class="p">,</span> <span class="nb">set</span> <span class="n">pic</span> <span class="n">to</span> <span class="n">GPEX_HOST</span><span class="s1">&#39;s qemu_irq</span>
+   <span class="o">=&gt;</span> <span class="n">sysbus_connect_irq</span><span class="p">(</span><span class="n">SYS_BUS_DEVICE</span><span class="p">(</span><span class="n">dev</span><span class="p">),</span> <span class="n">i</span><span class="p">,</span> <span class="n">pic</span><span class="p">[</span><span class="n">irq</span> <span class="o">+</span> <span class="n">i</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">qemu_irq</span></code> misc:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">kvm_i8259_init</span><span class="p">(</span><span class="n">ISABus</span> <span class="o">*</span><span class="n">bus</span><span class="p">)</span>
+<span class="o">//</span>   <span class="n">qemu_allocate_irqs</span><span class="p">(</span><span class="n">kvm_pic_set_irq</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="n">ISA_NUM_IRQS</span><span class="p">);</span>
+<span class="o">//</span> <span class="o">/</span><span class="n">hw</span><span class="o">/</span><span class="n">i386</span><span class="o">/</span><span class="n">pc_piix</span><span class="o">.</span><span class="n">c</span><span class="p">::</span><span class="n">pc_init1</span><span class="p">()</span>
+<span class="o">//</span>   <span class="n">pcms</span><span class="o">-&gt;</span><span class="n">gsi</span> <span class="o">=</span>
+<span class="o">//</span>     <span class="p">[</span><span class="n">kvm_ioapic_in_kernel</span><span class="p">]</span> <span class="n">qemu_allocate_irqs</span><span class="p">(</span><span class="n">kvm_pc_gsi_handler</span><span class="p">)</span>
+<span class="o">//</span>     <span class="n">qemu_allocate_irqs</span><span class="p">(</span><span class="n">gsi_handler</span><span class="p">)</span>
+<span class="o">//</span>   <span class="n">smi_irq</span> <span class="o">=</span> <span class="n">qemu_allocate_irq</span><span class="p">(</span><span class="n">pc_acpi_smi_interrupt</span><span class="p">)</span>
+<span class="o">//</span> <span class="o">/</span><span class="n">hw</span><span class="o">/</span><span class="n">i386</span><span class="o">/</span><span class="n">pc</span><span class="o">.</span><span class="n">c</span><span class="p">::</span><span class="n">pc_allocate_cpu_irq</span><span class="p">()</span>
+<span class="o">//</span>   <span class="n">qemu_allocate_irq</span><span class="p">(</span><span class="n">pic_irq_request</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="o">//</span> <span class="n">i8254</span><span class="o">.</span><span class="n">c</span><span class="p">::</span><span class="n">kvm_pit_realizefn</span><span class="p">()</span>
+<span class="o">//</span>   <span class="n">qdev_init_gpio_in</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">kvm_pit_irq_control</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="o">//</span> <span class="n">ioapic</span><span class="o">.</span><span class="n">c</span><span class="p">::</span><span class="n">kvm_ioapic_realize</span><span class="p">()</span>
+<span class="o">//</span>   <span class="n">qdev_init_gpio_in</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">kvm_ioapic_set_irq</span><span class="p">,</span> <span class="n">IOAPIC_NUM_PINS</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU e1000 Device Emulation</a><ul>
+<li><a class="reference internal" href="#e1000-keynote">e1000 keynote</a></li>
+<li><a class="reference internal" href="#e1000-tx">e1000 TX</a><ul>
+<li><a class="reference internal" href="#e1000-start-xmit-dataflow">e1000 start_xmit() dataflow</a></li>
+<li><a class="reference internal" href="#e1000-sending-completion-interrupt">e1000 sending completion interrupt</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/e1000_device.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

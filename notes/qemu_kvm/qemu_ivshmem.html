@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ivshmem source code &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="QEMU Network" href="qemu_net.html" />
+    <link rel="prev" title="Memory Usage in ivshmem" href="ivshmem_memory.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="ivshmem-source-code">
+<h1>ivshmem source code<a class="headerlink" href="#ivshmem-source-code" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>[hw/misc/ivshmem.c] Inter-VM shared memory</p></li>
+<li><p>class name: TYPE_IVSHMEM</p></li>
+<li><p>inheritance: TYPE_IVSHMEM -&gt; TYPE_IVSHMEM_COMMON -&gt; TYPE_PCI_DEVICE -&gt; TYPE_DEVICE</p></li>
+<li><p>TYPE_IVSHMEM members (from class init)</p>
+<ul>
+<li><p>k-&gt;realize = ivshmem_realize</p></li>
+<li><p>dc-&gt;desc = “Inter-VM shared memory (legacy)”</p></li>
+<li><p>dc-&gt;props = ivshmem_properties</p></li>
+</ul>
+</li>
+<li><p>TYPE_IVSHMEM_COMMON members (from class init)</p>
+<ul>
+<li><p>k-&gt;realize = ivshmem_common_realize</p></li>
+<li><p>dc-&gt;desc = “Inter-VM shared memory”</p></li>
+<li><p>k-&gt;exit = ivshmem_exit</p></li>
+<li><p>k-&gt;config_write = ivshmem_write_config</p></li>
+<li><p>dc-&gt;reset = ivshmem_reset</p></li>
+</ul>
+</li>
+</ul>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">static</span> <span class="n">void</span> <span class="n">ivshmem_IntrMask_write</span><span class="p">(</span><span class="n">IVShmemState</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="n">uint32_t</span> <span class="n">val</span><span class="p">)</span>
+
+<span class="mf">1.</span> <span class="n">IntrMask</span> <span class="n">read</span><span class="o">/</span><span class="n">write</span>
+<span class="mf">2.</span> <span class="n">IntrStatus</span> <span class="n">read</span><span class="o">/</span><span class="n">write</span>
+
+<span class="mf">3.</span> <span class="n">RW</span> <span class="n">interrupt</span> <span class="n">register</span><span class="p">,</span> <span class="n">如果有寫入</span><span class="p">,</span> <span class="n">則透過</span> <span class="n">pci</span> <span class="n">update</span> <span class="n">irq</span>
+
+<span class="n">static</span> <span class="n">void</span> <span class="n">ivshmem_io_write</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">opaque</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="n">addr</span><span class="p">,</span> <span class="n">uint64_t</span> <span class="n">val</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">size</span><span class="p">)</span>
+
+<span class="mf">1.</span> <span class="n">io_read</span><span class="o">/</span><span class="n">write</span>
+<span class="mf">2.</span> <span class="n">MemoryRegionOps</span>
+
+<span class="n">ivshmem_vector_notify</span>
+
+<span class="mf">1.</span> <span class="n">notify</span><span class="p">,</span> <span class="n">mask</span><span class="o">/</span><span class="n">unmask</span><span class="p">,</span> <span class="n">poll</span>
+
+<span class="n">static</span> <span class="n">void</span> <span class="n">watch_vector_notifier</span><span class="p">(</span><span class="n">IVShmemState</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="n">EventNotifier</span> <span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="nb">int</span> <span class="n">vector</span><span class="p">)</span>
+
+<span class="mf">1.</span> <span class="nb">int</span> <span class="n">eventfd</span> <span class="o">=</span> <span class="n">event_notifier_get_fd</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+<span class="mf">2.</span> <span class="n">qemu_set_fd_handler</span><span class="p">(</span><span class="n">eventfd</span><span class="p">,</span> <span class="n">ivshmem_vector_notify</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">s</span><span class="o">-&gt;</span><span class="n">msi_vectors</span><span class="p">[</span><span class="n">vector</span><span class="p">]);</span>
+
+<span class="n">static</span> <span class="n">void</span> <span class="n">ivshmem_add_eventfd</span><span class="p">(</span><span class="n">IVShmemState</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="nb">int</span> <span class="n">posn</span><span class="p">,</span> <span class="nb">int</span> <span class="n">i</span><span class="p">)</span>
+
+<span class="n">static</span> <span class="n">void</span> <span class="n">process_msg_shmem</span><span class="p">(</span><span class="n">IVShmemState</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="nb">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">Error</span> <span class="o">**</span><span class="n">errp</span><span class="p">)</span>
+
+<span class="mf">1.</span> <span class="n">process</span> <span class="n">msg</span> <span class="n">connect</span><span class="o">/</span><span class="n">disconnect</span>
+<span class="mf">2.</span> <span class="n">process</span> <span class="n">msg</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ivshmem source code</a><ul>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_ivshmem.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

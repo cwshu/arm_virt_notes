@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Prepare AArch64 Linux guest OS image &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="KGDB internal note" href="kgdb_internal_note.html" />
+    <link rel="prev" title="ArchLinux ARM on odroid c2" href="archlinux_arm_odroidc2.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="prepare-aarch64-linux-guest-os-image">
+<h1>Prepare AArch64 Linux guest OS image<a class="headerlink" href="#prepare-aarch64-linux-guest-os-image" title="Permalink to this headline">¶</a></h1>
+<ol class="arabic simple">
+<li><p>Linaro image</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="http://releases.linaro.org/openembedded/aarch64/16.07/">http://releases.linaro.org/openembedded/aarch64/16.07/</a></p>
+<ul>
+<li><p>kernel: Image</p></li>
+<li><p>rootfs1 (minimal): linaro-image-minimal-genericarmv8-20160724-830.rootfs.tar.gz</p></li>
+<li><p>rootfs2 (LAMP): linaro-image-lamp-genericarmv8-20160724-830.rootfs.tar.gz</p></li>
+</ul>
+</li>
+<li><p>usage</p>
+<ul>
+<li><p><a class="reference external" href="http://felix-lin.com/linux/busybox-%E6%87%89%E7%94%A8-udhcpc/">busybox udhcpc</a></p></li>
+<li><p>linaro-minimal has udhcpc default script.</p></li>
+</ul>
+</li>
+<li><p>more about Linaro OpenEmbedded</p>
+<ul>
+<li><p><a class="reference external" href="http://elinux.org/images/6/61/2012-ELCE-Bootstrapping-ARM-64bit-with-OpenEmbedded.pdf">Bootstrapping ARM 64-bit with OpenEmbedded</a></p></li>
+<li><p><a class="reference external" href="http://suihkulokki.blogspot.tw/2014/08/booting-linaro-armv8-oe-images-with-qemu.html">Booting Linaro ARMv8 OE images with Qemu</a></p></li>
+<li><p><a class="reference external" href="https://wiki.linaro.org/Cycles/1509/Release">https://wiki.linaro.org/Cycles/1509/Release</a></p></li>
+</ul>
+</li>
+</ul>
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p>Ubuntu cloud image</p>
+<ul>
+<li><p><a class="reference external" href="http://odroid.com/dokuwiki/doku.php?id=en:c2_ubuntu_cloud">odroid-c2 wiki</a></p></li>
+<li><p><a class="reference external" href="http://suihkulokki.blogspot.tw/2016/05/booting-ubuntu-1604-cloud-images-on.html">Booting ubuntu 16.04 cloud images on Arm64</a></p></li>
+<li><p>problem: ubuntu cloud image 增大:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">img</span> <span class="n">resize</span> <span class="o">&lt;</span><span class="n">image</span><span class="o">&gt;+</span><span class="mi">5</span><span class="n">G</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><a class="reference external" href="https://gist.github.com/larsks/3933980">https://gist.github.com/larsks/3933980</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Some distro provides AArch64 ISO</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Ubuntu 16.04: <a class="reference external" href="http://cdimage.ubuntu.com/releases/16.04/release/">http://cdimage.ubuntu.com/releases/16.04/release/</a></p></li>
+<li><p>Debian 8.6: <a class="reference external" href="http://cdimage.debian.org/debian-cd/8.6.0/arm64/iso-cd/">http://cdimage.debian.org/debian-cd/8.6.0/arm64/iso-cd/</a></p></li>
+<li><p>Fedora 23: <a class="reference external" href="https://dl.fedoraproject.org/pub/fedora-secondary/releases/23/">https://dl.fedoraproject.org/pub/fedora-secondary/releases/23/</a></p></li>
+</ul>
+</div></blockquote>
+<div class="section" id="problems-in-aarch64-iso-installed-rootfs">
+<h2>Problems in AArch64 ISO installed rootfs<a class="headerlink" href="#problems-in-aarch64-iso-installed-rootfs" title="Permalink to this headline">¶</a></h2>
+<p>ubuntu, debian, fedora 的 AArch64 rootfs 皆無法在 odroid_c2 kvm 上跑起來.</p>
+<ul class="simple">
+<li><p>problems</p>
+<ul>
+<li><p>ubuntu server iso 找不到 rootfs, 無法安裝</p></li>
+<li><p>debian 安裝 grub 會失敗</p></li>
+<li><p>fedora 裝完之後, boot 只能進到 EFI firmware</p></li>
+</ul>
+</li>
+<li><p>solution</p>
+<ul>
+<li><p>CD-ROM mount: use virtio-scsi-device and scsi-cd for CD-ROM</p></li>
+<li><p>UEFI: <a class="reference internal" href="ubuntu_qemu_kvm_aarch64.html#boot-uefi-issue"><span class="std std-ref">boot up issue(UEFI)</span></a></p></li>
+</ul>
+</li>
+</ul>
+<p>debian failed:</p>
+<blockquote>
+<div><img alt="../../_images/debian_failed.png" src="../../_images/debian_failed.png" />
+</div></blockquote>
+<p>fedora failed:</p>
+<blockquote>
+<div><img alt="../../_images/fedora_failed.png" src="../../_images/fedora_failed.png" />
+</div></blockquote>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="qemu-rootfs-in-arm64">
+<h3>qemu &amp; rootfs in arm64 資源<a class="headerlink" href="#qemu-rootfs-in-arm64" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>odroid c2 wiki</p>
+<ul>
+<li><p>qemu mode: kvm</p></li>
+<li><p>rootfs: ubuntu cloud image</p></li>
+<li><p>相似: <a class="reference external" href="https://wiki.ubuntu.com/ARM64/QEMU">https://wiki.ubuntu.com/ARM64/QEMU</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://www.bennee.com/~alex/blog/2014/05/09/running-linux-in-qemus-aarch64-system-emulation-mode/">https://www.bennee.com/~alex/blog/2014/05/09/running-linux-in-qemus-aarch64-system-emulation-mode/</a></p>
+<ul>
+<li><p>qemu mode: tcg</p></li>
+<li><p>rootfs: buildroot, Linaro</p></li>
+<li><p><a class="reference external" href="http://stenliao.blogspot.tw/2014/10/run-aarch64-linux-on-qemu.html">http://stenliao.blogspot.tw/2014/10/run-aarch64-linux-on-qemu.html</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://osmanov-dev-notes.blogspot.tw/2016/03/arch-linux-armv8-vm-on-gentoo-amd64.html">http://osmanov-dev-notes.blogspot.tw/2016/03/arch-linux-armv8-vm-on-gentoo-amd64.html</a></p>
+<ul>
+<li><p>qemu mode: tcg</p></li>
+<li><p>rootfs: ArchlinuxARM generic. 用 loop mount + dump rootfs 來做 image.
+但 image 好像保持 loop mount, qemu 會用 -kernel 直接指定 image 裡的 kernel.</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://gist.github.com/ecliptik/81ad7484d522097dca7f">https://gist.github.com/ecliptik/81ad7484d522097dca7f</a></p>
+<ul>
+<li><p>qemu mode: tcg</p></li>
+<li><p>rootfs: ubuntu or debian from debootstrap</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://fedoraproject.org/wiki/Architectures/AArch64/Install_with_QEMU">https://fedoraproject.org/wiki/Architectures/AArch64/Install_with_QEMU</a></p>
+<ul>
+<li><p>qemu mode: tcg</p></li>
+<li><p>rootfs: fedora 23 (aarch64 server)</p></li>
+</ul>
+</li>
+</ul>
+<p>稍微整理一下</p>
+<ul class="simple">
+<li><p>rootfs 種類</p>
+<ul>
+<li><p>buildroot</p></li>
+<li><p>ubuntu cloud image</p></li>
+<li><p>ubuntu server iso</p></li>
+<li><p>ubuntu from debootstrap</p></li>
+<li><p>debian from debootstrap</p></li>
+<li><p>fedora server iso</p></li>
+<li><p>archlinux arm generic rootfs (pacstrap)</p></li>
+</ul>
+</li>
+<li><p>buildroot: 建立 embedded system rootfs 的 tool, 相似於 yocto/OpenEmbedded.</p></li>
+<li><p>QEMU command 分析: ../misc/qemu_command.rst</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Prepare AArch64 Linux guest OS image</a><ul>
+<li><a class="reference internal" href="#problems-in-aarch64-iso-installed-rootfs">Problems in AArch64 ISO installed rootfs</a></li>
+<li><a class="reference internal" href="#misc">Misc</a><ul>
+<li><a class="reference internal" href="#qemu-rootfs-in-arm64">qemu &amp; rootfs in arm64 資源</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../platform.html">Platform Installations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kgdb_internal_note.html">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/platform/guest_image.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

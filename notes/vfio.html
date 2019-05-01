@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>VFIO &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="VFIO resource" href="vfio/resource.html" />
+    <link rel="prev" title="DMA Mapping" href="dma/dma_mapping.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vfio">
+<h1>VFIO<a class="headerlink" href="#vfio" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vfio/resource.html">VFIO resource</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vfio/resource.html#kernel-patches">Kernel Patches</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="vfio/ARM_implementation.html">VFIO ARM resource</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#terminology">Terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#vfio-platform-for-dma-controller-pl330">VFIO_PLATFORM for DMA Controller (PL330)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#vfio-platform-for-calxeda-xgmac-ethernet-driver">VFIO_PLATFORM for Calxeda xgmac ethernet driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#some-kernel-patches">Some kernel patches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#kvm-pcie-msi-passthrough-on-arm-arm64">KVM PCIe/MSI Passthrough on ARM/ARM64</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html#other-resource">Other Resource</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="vfio/vfio_core.html">VFIO implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#basic">Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#functionality">Functionality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#vfio-apis">VFIO APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#qemu-vfio-device">QEMU VFIO device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html#source-code">source code 參考</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="vfio/vfio_core2.html">VFIO details</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html#example-usage">Example Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html#kernel">kernel 內部實作</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html#detail">介面 detail</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html#id2">內部元件 detail</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html#other-about-functionality">other about functionality</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div></blockquote>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dma.html">DMA note</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">VFIO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vfio/resource.html">VFIO resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/ARM_implementation.html">VFIO ARM resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core.html">VFIO implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio/vfio_core2.html">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/notes/vfio.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

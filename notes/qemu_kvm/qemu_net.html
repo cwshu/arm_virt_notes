@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU Network &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="QEMU e1000 Device Emulation" href="e1000_device.html" />
+    <link rel="prev" title="ivshmem source code" href="qemu_ivshmem.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-network">
+<h1>QEMU Network<a class="headerlink" href="#qemu-network" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction-architecture">
+<h2>introduction(architecture)<a class="headerlink" href="#introduction-architecture" title="Permalink to this headline">¶</a></h2>
+<p>virtual network device 跟 network emulation 的程式碼會各實作出一個 <code class="docutils literal notranslate"><span class="pre">NetClientState</span></code>, 然後兩者互相 peering.
+當兩者要傳出資料給對方時, 都會呼叫 <code class="docutils literal notranslate"><span class="pre">qemu_send_packet*()</span></code> 相關的 API 來完成.</p>
+<p><code class="docutils literal notranslate"><span class="pre">qemu_send_packet*()</span></code> 則會呼叫 peer 的 <code class="docutils literal notranslate"><span class="pre">NetClientState</span></code> 之中的 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive*()</span></code> 相關 API 來接收對方給的資料.</p>
+<p>所以每套 virtual network device 跟 network emulation 都需要提供 <code class="docutils literal notranslate"><span class="pre">NetClientInfo</span></code> 的介面,</p>
+<ul class="simple">
+<li><p>virtual network device 的 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive*()</span></code> 實作 QEMU 如何把資料傳回 guest OS driver.</p></li>
+<li><p>network emulation 的 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive*()</span></code> 實作 QEMU 如何把資料透過 host OS 的 APIs 送出到 remote OS.</p></li>
+</ul>
+<p>舉例來說, 以下是一個 guest OS sending packet 的範例, 使用 e1000-slirp 的網路設定.
+sending packets 的 control flow (QEMU part):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">VM</span> <span class="n">Exit</span> <span class="o">=&gt;</span> <span class="n">address_space_rw</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">e1000_mmio_write</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">start_xmit</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="o">...</span> <span class="o">=&gt;</span> <span class="n">e1000_send_packet</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">qemu_send_packet</span><span class="p">()</span>
+<span class="o">=&gt;</span> <span class="n">net_slirp_receive</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">slirp_input</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">ip_input</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">tcp_input</span><span class="p">()</span> <span class="o">...</span> <span class="o">=&gt;</span> <span class="n">send</span><span class="p">()</span> <span class="n">syscall</span>
+</pre></div>
+</div>
+<p>第一行是 QEMU 接受 guest 的 MMIO exit 並轉交給 e1000 網卡 emulation 的邏輯, 這邊不詳述.
+第二行是 e1000 程式碼的實作, 可以發現 e1000 最後透過 <code class="docutils literal notranslate"><span class="pre">qemu_send_packet*()</span></code> 送出封包給 network emulation 的部份做模擬.
+第四行則轉接到 slirp 所提供的 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive()</span></code> API, 可以看到 API 開始透過 slirp 的 tcp/ip stack 來 decapsulate 封包, 最後把資料透過 system call <a class="reference internal" href="slirp.html#slirp-input"><span class="std std-ref">[1]</span></a> 送出.</p>
+<p>以下是架構參考圖:</p>
+<img alt="../../_images/e1000_slirp.png" src="../../_images/e1000_slirp.png" />
+<p>p.s.</p>
+<ul class="simple">
+<li><p>關於 <code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code> 如何呼叫 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive()</span></code>, 請參考 <a class="reference internal" href="#qemu-send-packet"><span class="std std-ref">qemu_send_packet() 跟 NetClientInfo</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="qemu-send-packet-netclientinfo">
+<span id="qemu-send-packet"></span><h2>qemu_send_packet() 跟 NetClientInfo<a class="headerlink" href="#qemu-send-packet-netclientinfo" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="basic-struct">
+<h3>basic struct<a class="headerlink" href="#basic-struct" title="Permalink to this headline">¶</a></h3>
+<p>overview:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">struct</span> <span class="n">NetClientState</span>
+
+  <span class="o">-</span> <span class="n">NetClientInfo</span><span class="o">*</span> <span class="n">info</span>
+  <span class="o">-</span> <span class="n">NetClientState</span><span class="o">*</span> <span class="n">peer</span>
+  <span class="o">-</span> <span class="n">NetQueue</span> <span class="o">*</span><span class="n">incoming_queue</span>
+
+  <span class="o">-</span> <span class="n">QTAILQ_ENTRY</span><span class="p">(</span><span class="n">NetClientState</span><span class="p">)</span> <span class="nb">next</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">NetQueue</span></code> methods:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">methods</span>
+
+  <span class="o">-</span> <span class="n">qemu_net_queue_append</span><span class="p">():</span> <span class="n">從</span> <span class="n">parameter</span> <span class="n">把要</span> <span class="n">sending</span> <span class="n">的資料暫存到</span> <span class="n">queue</span><span class="o">-&gt;</span><span class="n">packets</span>
+  <span class="o">-</span> <span class="n">qemu_net_queue_flush</span><span class="p">():</span> <span class="n">把所有</span> <span class="n">queue</span><span class="o">-&gt;</span><span class="n">packets</span> <span class="n">的資料都進行</span> <span class="n">qemu_net_queue_deliver</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">qemu_net_queue_deliver</span><span class="p">():</span> <span class="n">呼叫該</span> <span class="n">NetQueue</span> <span class="n">的</span> <span class="n">deliver</span> <span class="n">method</span><span class="p">:</span> <span class="n">queue</span><span class="o">-&gt;</span><span class="n">deliver</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">qemu_net_queue_send</span><span class="p">():</span> <span class="n">進行</span> <span class="n">qemu_net_queue_deliver</span> <span class="o">+</span> <span class="n">flush</span><span class="p">,</span> <span class="n">如果</span> <span class="n">deliver</span> <span class="n">失敗則改成</span> <span class="n">append</span>
+
+<span class="o">-</span> <span class="n">member</span>
+
+  <span class="o">-</span> <span class="n">QTAILQ_HEAD</span><span class="p">(</span><span class="n">packets</span><span class="p">,</span> <span class="n">NetPacket</span><span class="p">)</span> <span class="n">packets</span>
+  <span class="o">-</span> <span class="n">NetQueueDeliverFunc</span> <span class="o">*</span><span class="n">deliver</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code> calls peer <code class="docutils literal notranslate"><span class="pre">NetClientInfo</span></code>’s receive functions</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>qemu_send_packet(NetClientState* nc)
+
+// =&gt; qemu_net_queue_send(nc-&gt;peer-&gt;imcoming_queue)
+=&gt; nc-&gt;peer-&gt;incoming_queue-&gt;deliver(nc, ..., nc-&gt;peer-&gt;incoming_queue-&gt;opaque) = qemu_deliver_packet_iov()
+
+   // peer = nc-&gt;peer-&gt;incoming_queue-&gt;opaque ??
+   [1.] peer-&gt;info-&gt;receive_iov(peer, iov, iovcnt);
+   [2.] nc_sendv_compat(peer, iov, iovcnt, flags);
+
+        [a.] peer-&gt;info-&gt;receive()
+        [b.] peer-&gt;info-&gt;receive_raw()
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU Network</a><ul>
+<li><a class="reference internal" href="#introduction-architecture">introduction(architecture)</a></li>
+<li><a class="reference internal" href="#qemu-send-packet-netclientinfo">qemu_send_packet() 跟 NetClientInfo</a><ul>
+<li><a class="reference internal" href="#basic-struct">basic struct</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_net.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

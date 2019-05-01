@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>KGDB internal note &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Perf" href="../perf.html" />
+    <link rel="prev" title="Prepare AArch64 Linux guest OS image" href="guest_image.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="kgdb-internal-note">
+<h1>KGDB internal note<a class="headerlink" href="#kgdb-internal-note" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>kgdboc: kgdb over console</p></li>
+</ul>
+<div class="section" id="kgdboc-init">
+<h2>kgdboc init<a class="headerlink" href="#kgdboc-init" title="Permalink to this headline">¶</a></h2>
+<p>從 kgdboc 設定 sysfs 碰到 error 開始</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ echo &#39;ttyS0&#39; &gt; /sys/module/kgdboc/parameters/kgdboc
+-bash: echo: write error: No such device
+</pre></div>
+</div>
+<p>這個 sysfs entry 是一個 kernel module kgdboc 的 parameter.</p>
+<p>kgdboc parameter 帶有 setter, 也就是說當設定 sysfs parameter 時會呼叫 setter.
+kgdboc 的 setter 會呼叫 <code class="docutils literal notranslate"><span class="pre">configure_kgdboc()</span></code>, 把 parameter 中輸入的 tty driver 設定到 kgdboc 之中.</p>
+<p><code class="docutils literal notranslate"><span class="pre">configure_kgdboc()</span></code> 有幾個核心: (假設 input parameter 為 <code class="docutils literal notranslate"><span class="pre">ttyS0</span></code>)</p>
+<ul class="simple">
+<li><p>參數如果有 <code class="docutils literal notranslate"><span class="pre">kbd</span></code> 或 <code class="docutils literal notranslate"><span class="pre">kdb</span></code>, 使用 <code class="docutils literal notranslate"><span class="pre">register_kbd()</span></code> 去設定 <code class="docutils literal notranslate"><span class="pre">kdb_poll_funcs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tty_find_polling_driver()</span></code>: 在 tty_drivers 當中搜尋 <code class="docutils literal notranslate"><span class="pre">ttyS0</span></code> 並回傳. <code class="docutils literal notranslate"><span class="pre">(p.s.</span> <span class="pre">tty_driver=&quot;ttyS&quot;</span> <span class="pre">and</span> <span class="pre">tty_line=&quot;0&quot;)</span></code></p></li>
+<li><p>搜尋 console_drivers 當中有無跟該 tty_driver 同名的 driver, 有的話設定 <code class="docutils literal notranslate"><span class="pre">kgdboc_io_ops.is_console</span> <span class="pre">=</span> <span class="pre">true</span></code>.</p></li>
+<li><p>將 <code class="docutils literal notranslate"><span class="pre">kgdb_tty_driver</span></code> 設定為 <code class="docutils literal notranslate"><span class="pre">ttyS0</span></code>, 該 driver 為 <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">kgdb_io</span> <span class="pre">kgdboc_io_ops</span></code> 的 backend.</p></li>
+<li><p>最後呼叫 <code class="docutils literal notranslate"><span class="pre">kgdb_register_io_module()</span></code> 跟 <code class="docutils literal notranslate"><span class="pre">kgdb_register_nmi_console()</span></code> 進行註冊.
+<code class="docutils literal notranslate"><span class="pre">kgdb_register_io_module()</span></code> 會將 kgdboc 設定為 KGDB 的 IO driver.</p></li>
+</ul>
+<p>在 <code class="docutils literal notranslate"><span class="pre">configure_kgdboc()</span></code> 當中, <code class="docutils literal notranslate"><span class="pre">kgdb_register_io_module()</span></code> 之前碰到的錯誤幾乎都會回傳 <code class="docutils literal notranslate"><span class="pre">NODEV</span></code>.</p>
+<p>不過這次的問題是出在 <code class="docutils literal notranslate"><span class="pre">tty_find_polling_driver()</span></code> 的檢查上:</p>
+<blockquote>
+<div><p>當 kgdboc 使用的 tty_driver 是以 uart 為 backend 時, uart_driver 需要支援 polled mode.
+具體來說是 uart_driver 需要實作 uart_ops-&gt;poll_put_char() 跟 poll_get_char() 兩個函式.</p>
+<p>trace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tty_find_polling_driver</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">struct</span> <span class="n">tty_operations</span><span class="o">-&gt;</span><span class="n">poll_init</span><span class="p">()</span>
+
+<span class="ow">in</span> <span class="n">tty_driver</span> <span class="n">serial_core</span><span class="p">:</span>
+  <span class="n">tty_operations</span><span class="o">-&gt;</span><span class="n">poll_init</span><span class="p">()</span> <span class="o">==</span> <span class="n">uart_poll_init</span><span class="p">()</span>
+
+<span class="n">uart_poll_init</span><span class="p">():</span> <span class="n">check</span> <span class="k">if</span> <span class="n">struct</span> <span class="n">uart_ops</span><span class="o">-&gt;</span><span class="n">poll_get_char</span><span class="p">()</span> <span class="ow">and</span> <span class="o">-&gt;</span><span class="n">poll_put_char</span><span class="p">()</span> <span class="ow">is</span> <span class="n">exist</span>
+  <span class="o">=&gt;</span> <span class="n">calls</span> <span class="n">custom</span> <span class="n">init</span> <span class="n">function</span> <span class="n">uart_ops</span><span class="o">-&gt;</span><span class="n">poll_init</span><span class="p">()</span> <span class="k">if</span> <span class="n">it</span> <span class="n">exist</span><span class="o">.</span>
+
+<span class="c1"># odroid c2/amlogic S905</span>
+<span class="n">uart_driver</span> <span class="n">meson_uart</span> <span class="n">doesn</span><span class="s1">&#39;t implement poll_get_char() and poll_put_char().</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>相關文件</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.kernel.org/pub/linux/kernel/people/jwessel/kdb/kgdbocDesign.html">kgdboc internals</a></p></li>
+<li><p><a class="reference external" href="https://lkml.org/lkml/2008/2/10/23">consoles: polling support, kgdboc</a></p></li>
+</ul>
+<p>分檔:</p>
+<ul class="simple">
+<li><p>KGDB core and arch support</p>
+<ul>
+<li><p>kernel/debug/debug_core.c: kgdb_register_io_module(), struct kgdb_io dbg_io_ops;</p></li>
+<li><p>arch/arm64/kernel/kgdb.c: struct kgdb_arch arch_kgdb_ops;</p></li>
+</ul>
+</li>
+<li><p>KGDB over console: one implementation of KGDB IO driver</p>
+<ul>
+<li><p>drivers/tty/serial/kgdboc.c: implementation of struct kgdb_io kgdboc_io_ops</p></li>
+<li><p>drivers/tty/serial/kgdb_nmi.c: kgdb_register_nmi_console()</p></li>
+</ul>
+</li>
+<li><p>TTY driver/subsystem</p>
+<ul>
+<li><p>drivers/tty/tty_io.c: tty_find_polling_driver(), tty_drivers</p></li>
+<li><p>include/linux/tty_driver.h: struct tty_driver, tty_operations;</p></li>
+</ul>
+</li>
+<li><p>UART driver/subsystem</p>
+<ul>
+<li><p>drivers/tty/serial/serial_core.c: struct tty_operations uart_ops (same meaning as tty_driver serial_core)</p></li>
+<li><p>include/linux/serial_core.h: struct uart_ops, uart_port, uart_driver;</p></li>
+<li><p>fs/proc/proc_tty.c: <code class="docutils literal notranslate"><span class="pre">/proc/tty/drivers</span></code>, <code class="docutils literal notranslate"><span class="pre">proc/tty/driver/&lt;tty_driver&gt;</span></code></p></li>
+</ul>
+</li>
+<li><p>include/linux/console.h: struct console</p></li>
+<li><p>kernel/printk/printk.c: console_drivers</p></li>
+</ul>
+</div>
+<div class="section" id="kgdb">
+<h2>KGDB<a class="headerlink" href="#kgdb" title="Permalink to this headline">¶</a></h2>
+<p>KGDB:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">kgdb</span><span class="o">.</span><span class="n">h</span>
+<span class="n">kernel</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="p">{</span><span class="n">debug_core</span><span class="o">.</span><span class="n">c</span><span class="p">,</span><span class="n">gdbstub</span><span class="o">.</span><span class="n">c</span><span class="p">}</span>
+
+<span class="n">struct</span> <span class="n">kgdb_arch</span><span class="p">,</span> <span class="n">kgdb_io</span>
+<span class="n">arch_kgdb_ops</span>
+<span class="n">dbg_io_ops</span><span class="p">,</span> <span class="n">kgdb_register_io_module</span><span class="p">()</span>
+
+<span class="n">kgdb_breakpoint</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">arch_kgdb_breakpoint</span><span class="p">()</span>
+<span class="n">kgdb_handle_exception</span><span class="p">()</span>
+<span class="n">dbg_</span><span class="p">{</span><span class="nb">set</span><span class="p">,</span><span class="n">get</span><span class="p">}</span><span class="n">_reg</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">debug_core.c</span></code>:</p>
+<blockquote>
+<div><p>有個全域的 struct kgdb_io 變數 dbg_io_ops,
+kgdb_register_io_module() 便是把一個 kgdb_io 的實作 assign 給 dbg_io_ops.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>kgdb_register_nmi_console() check</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">kgdboc.c</span></code>:</p>
+<blockquote>
+<div><p>其中一套 struct kgdb_io 的實作, kgdboc_io_ops.
+kgdboc_io_ops 的實作使用全域的 struct tty_driver 變數 kgdb_tty_driver.
+get/put_char() 的運算會去使用 kgdb_tty_driver 下面的 tty_operations.</p>
+</div></blockquote>
+</div>
+<div class="section" id="tty-and-console">
+<h2>TTY and console<a class="headerlink" href="#tty-and-console" title="Permalink to this headline">¶</a></h2>
+<p>global variable <code class="docutils literal notranslate"><span class="pre">tty_drivers</span></code>, <code class="docutils literal notranslate"><span class="pre">/proc/tty/drivers</span></code>, char devices <code class="docutils literal notranslate"><span class="pre">/dev/tty*</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">/proc/tty/drivers</span></code>: list all <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">tty_driver</span></code> in <code class="docutils literal notranslate"><span class="pre">(global</span> <span class="pre">var)</span> <span class="pre">tty_drivers</span></code>.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">5</span> <span class="n">columns</span><span class="p">:</span> <span class="n">driver_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">major</span><span class="p">,</span> <span class="n">minor_start</span><span class="o">~</span><span class="n">minor_end</span><span class="p">,</span> <span class="nb">type</span>
+
+<span class="c1"># major and minor are char device number, like /dev/ttyS0 or /dev/ttyUSB0</span>
+<span class="c1"># 主要有 4 個 type: system, serial, pty, console.</span>
+<span class="c1"># 每個 type 下還有 subtype, 比如說 pty 就有分 pty master/slave.</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">/proc/tty/driver/&lt;tty_driver&gt;</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">show</span> <span class="n">uart_driver</span><span class="o">-&gt;</span><span class="n">uart_state</span><span class="o">-&gt;</span><span class="n">uart_port</span>
+
+<span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="n">tty</span><span class="o">/</span><span class="n">driver</span><span class="o">/</span><span class="n">meson_uart</span>
+
+<span class="n">many</span> <span class="n">columns</span><span class="p">:</span> <span class="n">line</span><span class="p">,</span> <span class="n">uart</span><span class="p">,</span> <span class="n">mmio</span><span class="p">,</span> <span class="n">irq</span><span class="p">,</span> <span class="n">tx</span><span class="p">,</span> <span class="n">rx</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">flags</span>
+
+<span class="c1"># line: uport_line</span>
+<span class="c1"># uart: uart_type</span>
+</pre></div>
+</div>
+<p>tty and uart</p>
+<blockquote>
+<div><p>uart subsystem 有寫一個 tty_driver serial_core, 該 tty_driver 可以使用 uart subsystem 下的所有 driver 來實作 tty_driver.</p>
+</div></blockquote>
+</div>
+<div class="section" id="uart">
+<h2>UART<a class="headerlink" href="#uart" title="Permalink to this headline">¶</a></h2>
+<p>note</p>
+<ul class="simple">
+<li><p>struct <code class="docutils literal notranslate"><span class="pre">uart_ops</span></code> and <code class="docutils literal notranslate"><span class="pre">uart_port</span></code></p></li>
+<li><p><a class="reference external" href="https://www.kernel.org/doc/Documentation/serial/driver">https://www.kernel.org/doc/Documentation/serial/driver</a></p></li>
+</ul>
+<p>UART driver is also like network driver. It has send and recieve function, move their data by DMA, recieve data when interrupt trigger them.</p>
+<ul class="simple">
+<li><p>send function: uart_ops.start_tx()</p></li>
+<li><p>recieve function: interrupt handler =&gt; … =&gt; dma_rx()</p></li>
+</ul>
+<p>examples:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">drivers/tty/serial/8250/</span></code></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">KGDB internal note</a><ul>
+<li><a class="reference internal" href="#kgdboc-init">kgdboc init</a></li>
+<li><a class="reference internal" href="#kgdb">KGDB</a></li>
+<li><a class="reference internal" href="#tty-and-console">TTY and console</a></li>
+<li><a class="reference internal" href="#uart">UART</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../platform.html">Platform Installations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guest_image.html">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/platform/kgdb_internal_note.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

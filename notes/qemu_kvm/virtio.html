@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Virtio &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="virtio">
+<h1>Virtio<a class="headerlink" href="#virtio" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>intro</p>
+<ul>
+<li><p>virtio devices are implemented over MMIO, Channel I/O and PCI bus transports</p></li>
+<li><p>virtqueue, vring</p></li>
+</ul>
+</li>
+</ul>
+<div class="section" id="document">
+<h2>Document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>initial paper from Rusty Russel: <a class="reference external" href="https://ozlabs.org/~rusty/virtio-spec/virtio-paper.pdf">(Rusty, 2008) virtio: Towards a De-Facto Standard For Virtual I/O Devices</a></p></li>
+<li><p>about virtio spec:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="http://docs.oasis-open.org/virtio/virtio/v1.0/cs04/virtio-v1.0-cs04.html#x1-20001">Virtio spec from OASIS</a></p></li>
+<li><p><a class="reference external" href="https://lwn.net/Articles/580186/">(2014), Standardizing virtio [LWN.net]</a></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><a class="reference external" href="http://www.ibm.com/developerworks/library/l-virtio/">(2010), IBM developer works, Virtio: An I/O virtualization framework for Linux</a></p></li>
+<li><p><a class="reference external" href="https://www.cs.cmu.edu/~412/lectures/Virtio_2015-10-14.pdf">CMU 15-412 materials, Virtio: An I/O virtualization framework for Linux</a></p></li>
+<li><p><a class="reference external" href="https://vmsplice.net/~stefan/virtio-devconf-2014.pdf">(2014, devconf.cz), Stefan Hajnoczi. VIRTIO 1.0 - Paravirtualized I/O for KVM and beyond</a></p></li>
+<li><p>Performance comparsion: <a class="reference external" href="http://www.linux-kvm.org/page/Virtio/Block/Latency">virtio-blk latency</a></p></li>
+</ul>
+<div class="section" id="notes">
+<h3>notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>paper note: <a class="reference internal" href="virtio_paper.html"><span class="doc">virtio-paper</span></a></p></li>
+<li><p>virtqueue initialization (e.g. config)</p></li>
+<li><p>virtqueue 5 ops 簡介</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="virtio-blk">
+<h2>virtio-blk<a class="headerlink" href="#virtio-blk" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>documents</p>
+<ul>
+<li><p><a class="reference external" href="https://vmsplice.net/~stefan/qemu-kvm-architecture-2015.pdf">virtio blk 流程 (p.18 to 21)</a></p></li>
+<li><p><a class="reference external" href="http://www.linux-kvm.org/images/f/f9/2012-forum-virtio-blk-performance-improvement.pdf">(2012) virtio blk performance improvement</a></p></li>
+<li><p><a class="reference external" href="http://royluo.org/2014/08/31/virtio-blk-improvement/">Virtio-Blk性能加速方案</a></p></li>
+</ul>
+</li>
+<li><p>bio based virtio-blk guest driver: remove IO scheduling.</p></li>
+<li><p>vhost blk host driver: remove host fs layer, no qemu userspace.</p></li>
+</ul>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>virtqueue kick: a pio write to a virtio PCI hardware register</p>
+<ul>
+<li><p>Programming IO: <a class="reference external" href="https://en.wikipedia.org/wiki/Programmed_input/output">https://en.wikipedia.org/wiki/Programmed_input/output</a></p></li>
+<li><p><a class="reference external" href="http://www.linux-kvm.org/page/Virtio/Block/Latency">http://www.linux-kvm.org/page/Virtio/Block/Latency</a></p></li>
+<li><p>好吧, 看來 virtqueue kick 就是 trap, vring interrupt 也是一般的 interrupt.</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://qemu-project.org/Features/VirtioIoeventfd">virtio-ioeventfd (userspace emulation)</a></p>
+<ul>
+<li><p><a class="reference external" href="https://lists.nongnu.org/archive/html/qemu-devel/2011-01/msg02492.html">mailing list discussion</a></p></li>
+<li><p><a class="reference external" href="https://patchwork.ozlabs.org/patch/70806/">patch</a></p></li>
+<li><p>virtio-pci: Use ioeventfd for virtqueue notify</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Virtio</a><ul>
+<li><a class="reference internal" href="#document">Document</a><ul>
+<li><a class="reference internal" href="#notes">notes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#virtio-blk">virtio-blk</a></li>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/virtio.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

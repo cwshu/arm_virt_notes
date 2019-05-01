@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU thread and event model &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="KVM run and exit" href="run_and_exit.html" />
+    <link rel="prev" title="QEMU/KVM architecture overview" href="qemu_misc_note.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-thread-and-event-model">
+<h1>QEMU thread and event model<a class="headerlink" href="#qemu-thread-and-event-model" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>documents</p>
+<ul>
+<li><p>[2011] <a class="reference external" href="http://blog.vmsplice.net/2011/03/qemu-internals-overall-architecture-and.html">QEMU Internals: Overall architecture and threading model</a></p></li>
+<li><p>[2015] <a class="reference external" href="http://www.linux-kvm.org/images/6/64/03x08-Aspen-Fam_Zheng-Improving_the_QEMU_Event_Loop.pdf">Improving the QEMU Event Loop</a></p></li>
+<li><p>[2014] <a class="reference external" href="https://lxr.missinglinkelectronics.com/qemu+v2.10.0/docs/devel/multiple-iothreads.txt">docs/devel/multiple-iothreads.txt</a> (at docs/multiple-iothreads.txt before QEMU 2.10)</p></li>
+</ul>
+</li>
+</ul>
+<p>architecture: Event-driven multi-threaded</p>
+<ul class="simple">
+<li><p>event loop used for timer, fd, monitoring … etc</p>
+<ul>
+<li><p>non-blocking IO</p></li>
+<li><p>callback or coroutines</p></li>
+</ul>
+</li>
+<li><p>multi-thread architecture but with big lock</p>
+<ul>
+<li><p>vcpu threads execute in parallel</p></li>
+<li><p>specific task runs in other threads: RAM live migration, remote displaying encoding, virtio-blk dataplane</p></li>
+<li><p>global mutex</p></li>
+</ul>
+</li>
+</ul>
+<div class="section" id="doc1">
+<h2>doc1<a class="headerlink" href="#doc1" title="Permalink to this headline">¶</a></h2>
+<p>[2011] <a class="reference external" href="http://blog.vmsplice.net/2011/03/qemu-internals-overall-architecture-and.html">QEMU Internals: Overall architecture and threading model</a></p>
+<ol class="loweralpha simple">
+<li><p>event-driven core</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">main_loop_wait()</span></code></p>
+<ol class="loweralpha simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">set_fd_handler()</span></code></p></li>
+<li><p>run expired timer</p></li>
+<li><p>run BH(bottom halves)</p></li>
+</ol>
+</li>
+<li><p>callback:</p>
+<ul>
+<li><p>core execution is sequentially and atomicly. only one thread.</p></li>
+<li><p>no blocking system call.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Offloading specific tasks to worker threads</p>
+<ul class="simple">
+<li><p>example: posix-aio-compat.c, ui/vnc-jobs-async.c</p></li>
+<li><p>core isn’t thread-safe, worker threads can’t call core =&gt; workers communicate core by adding <code class="docutils literal notranslate"><span class="pre">qemu_eventfd()</span></code> or pipe to event-loop</p></li>
+</ul>
+</li>
+<li><p>Executing guest code</p>
+<ul class="simple">
+<li><p>TCG or KVM mode</p></li>
+<li><p>signal interrupt guest code and return qemu core.</p></li>
+</ul>
+</li>
+<li><p>iothread architecture</p>
+<ul class="simple">
+<li><p>truly SMP in KVM mode</p></li>
+<li><p>single qemu thread run guest code and event loop =&gt; vcpu thread run guest code and iothread run event loop</p></li>
+<li><p>Qemu Core code is still not thread-safe =&gt; vcpu thread and iothread hold a global mutex.</p></li>
+<li><p>but, enter guest code and wait for event loop doesn’t hold lock: most of time thread doesn’t hold mutex.</p></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="doc2">
+<h2>doc2<a class="headerlink" href="#doc2" title="Permalink to this headline">¶</a></h2>
+<p>[2015] <a class="reference external" href="http://www.linux-kvm.org/images/6/64/03x08-Aspen-Fam_Zheng-Improving_the_QEMU_Event_Loop.pdf">Improving the QEMU Event Loop</a></p>
+<ul class="simple">
+<li><p>請儘量將 slide 第一部份 “The event loops in QEMU” 研究完.
+virtio guest driver 在呼叫 qemu backend 會用到 aio, 最低限度也要了解 aio 跟 slirp 的部份.</p>
+<ol class="loweralpha simple">
+<li><p>QEMU multithreading: vCPU, iothread, pool workers …</p></li>
+<li><p>Main loop in front: prepare, poll, dispatch</p></li>
+<li><p>Main loop under the surface: slirp, iohandler, glib</p></li>
+<li><p>GSource: chardev, aio context</p></li>
+</ol>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU thread and event model</a><ul>
+<li><a class="reference internal" href="#doc1">doc1</a></li>
+<li><a class="reference internal" href="#doc2">doc2</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_thread_event.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

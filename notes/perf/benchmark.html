@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Benchmark Tools &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Misc" href="../misc.html" />
+    <link rel="prev" title="Perf" href="../perf.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="benchmark-tools">
+<h1>Benchmark Tools<a class="headerlink" href="#benchmark-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="current-tools">
+<h2>Current Tools<a class="headerlink" href="#current-tools" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>netperf/iperf</p></li>
+<li><p>ab</p></li>
+<li><p>speedtest-cli</p></li>
+<li><p>send file by nc</p></li>
+</ul>
+<p>high level wrapper</p>
+<ul class="simple">
+<li><p>daynix/NetMeter: <a class="reference external" href="https://github.com/daynix/NetMeter">https://github.com/daynix/NetMeter</a></p></li>
+</ul>
+</div>
+<div class="section" id="netperf">
+<h2>netperf<a class="headerlink" href="#netperf" title="Permalink to this headline">¶</a></h2>
+<p>installation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">apt</span> <span class="n">install</span> <span class="n">netperf</span>
+<span class="n">pacman</span> <span class="o">-</span><span class="n">S</span> <span class="n">netperf</span>
+
+<span class="c1"># server side: run server at 12865 port</span>
+<span class="n">netserver</span>
+<span class="c1"># client side</span>
+<span class="n">netperf</span> <span class="o">-</span><span class="n">t</span> <span class="n">TCP_STREAM</span> <span class="o">-</span><span class="n">H</span> <span class="o">&lt;</span><span class="n">server_ip</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">netperf</span> <span class="o">-</span><span class="n">t</span> <span class="n">TCP_STREAM</span> <span class="o">-</span><span class="n">H</span> <span class="o">&lt;</span><span class="n">server_ip</span><span class="o">&gt;</span>
+
+<span class="n">netperf</span> <span class="o">&lt;</span><span class="k">global</span><span class="o">&gt;</span> <span class="o">--</span> <span class="o">&lt;</span><span class="n">test</span><span class="o">-</span><span class="n">specific</span><span class="o">&gt;</span>
+<span class="c1"># global options:</span>
+<span class="c1">#   -t &lt;type&gt;</span>
+<span class="c1">#     TCP_STREAM: bandwidth, Mbit/sec</span>
+<span class="c1">#     TCP_RR: tcp request/sec</span>
+<span class="c1">#     TCP_CRR: TCP_RR, but reconnect tcp connection each request.</span>
+<span class="c1">#   -l &lt;time&gt;</span>
+<span class="c1"># TCP_RR test specific option</span>
+<span class="c1">#   -r &lt;req_size&gt;,&lt;resp_size&gt;</span>
+<span class="c1">#      -r 32,1024</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Netperf manual &lt;<a class="reference external" href="https://hewlettpackard.github.io/netperf/doc/netperf.html">https://hewlettpackard.github.io/netperf/doc/netperf.html</a>&gt;</p></li>
+<li><p>netperf 与网络性能测量 &lt;<a class="reference external" href="https://www.ibm.com/developerworks/cn/linux/l-netperf/">https://www.ibm.com/developerworks/cn/linux/l-netperf/</a>&gt;</p></li>
+</ul>
+</div>
+<div class="section" id="iperf">
+<h2>iperf<a class="headerlink" href="#iperf" title="Permalink to this headline">¶</a></h2>
+<p>running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># server</span>
+<span class="n">iperf</span> <span class="o">-</span><span class="n">s</span>
+<span class="c1"># client</span>
+<span class="n">iperf</span> <span class="o">-</span><span class="n">c</span> <span class="o">&lt;</span><span class="n">server_ip</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>iperf tutorial &lt;<a class="reference external" href="http://cnds.eecs.jacobs-university.de/courses/anl-2010/Iperf%20Tutorial.pdf">http://cnds.eecs.jacobs-university.de/courses/anl-2010/Iperf%20Tutorial.pdf</a>&gt;</p></li>
+<li><p><a class="reference external" href="https://www.es.net/assets/Uploads/201007-JTIperf.pdf">https://www.es.net/assets/Uploads/201007-JTIperf.pdf</a></p></li>
+</ul>
+</div>
+<div class="section" id="netmeter">
+<h2>NetMeter<a class="headerlink" href="#netmeter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="prepare">
+<h3>prepare<a class="headerlink" href="#prepare" title="Permalink to this headline">¶</a></h3>
+<p>host:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">python3</span> <span class="n">python3</span><span class="o">-</span><span class="n">numpy</span> <span class="n">iperf</span> <span class="n">gnuplot</span>
+<span class="o">//</span> <span class="n">winexe</span> <span class="k">for</span> <span class="n">windows</span> <span class="n">guest</span>
+</pre></div>
+</div>
+<p>guest:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">ssh</span> <span class="n">server</span>
+<span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">iperf</span>
+</pre></div>
+</div>
+<p>sshkey:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span># generate host key
+host$ ssh-keygen -t rsa -f ~/.ssh/net_meter
+# set key to client
+host$ cat ~/.ssh/net_meter.pub | ssh -p &lt;ssh_port&gt; &lt;ssh_user&gt;@&lt;ssh_host&gt; &quot;cat &gt;&gt; ~/.ssh/authorized_keys&quot;
+# test if ssh-key is success
+host$ ssh -p &lt;ssh_port&gt; &lt;ssh_user&gt;@&lt;ssh_host&gt; -i ~/.ssh/net_meter
+
+# also set host key to client2
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">NetMeterConfig.py</span></code> and <code class="docutils literal notranslate"><span class="pre">creds.dat</span></code></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shutdown=False</span></code>: Will <code class="docutils literal notranslate"><span class="pre">NetMeter</span></code> close client at the end of test?</p></li>
+<li><p>key in <code class="docutils literal notranslate"><span class="pre">creds.dat</span></code> could’t use <code class="docutils literal notranslate"><span class="pre">~</span></code> in path.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="note">
+<h3>note<a class="headerlink" href="#note" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>running</p>
+<ul>
+<li><p>different buffer size in <code class="docutils literal notranslate"><span class="pre">iperf</span></code>: <code class="docutils literal notranslate"><span class="pre">iperf</span> <span class="pre">-l</span></code></p></li>
+<li><p>cpu usage?</p></li>
+<li><p>time control: wait 30 sec</p></li>
+<li><p>TCP/UDP protocol</p></li>
+<li><p>multi-thread</p></li>
+</ul>
+</li>
+<li><p>render plot and html</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Benchmark Tools</a><ul>
+<li><a class="reference internal" href="#current-tools">Current Tools</a></li>
+<li><a class="reference internal" href="#netperf">netperf</a></li>
+<li><a class="reference internal" href="#iperf">iperf</a></li>
+<li><a class="reference internal" href="#netmeter">NetMeter</a><ul>
+<li><a class="reference internal" href="#prepare">prepare</a></li>
+<li><a class="reference internal" href="#note">note</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../perf.html">Perf</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Benchmark Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/perf/benchmark.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

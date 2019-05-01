@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ubuntu Server on qemu-system-aarch64/kvm &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ArchLinux ARM on odroid c2" href="archlinux_arm_odroidc2.html" />
+    <link rel="prev" title="Platform Installations" href="../platform.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="ubuntu-server-on-qemu-system-aarch64-kvm">
+<h1>Ubuntu Server on qemu-system-aarch64/kvm<a class="headerlink" href="#ubuntu-server-on-qemu-system-aarch64-kvm" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="preparation">
+<h2>Preparation<a class="headerlink" href="#preparation" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Linaro QEMU_EFI</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://releases.linaro.org/components/kernel/uefi-linaro/15.12/release/qemu64/QEMU_EFI.fd">download</a></p></li>
+<li><p><a class="reference external" href="https://releases.linaro.org/components/kernel/uefi-linaro/latest/">latest release</a></p></li>
+<li><p><a class="reference external" href="https://wiki.linaro.org/LEG/UEFIforQEMU">introduction</a></p>
+<ul>
+<li><p>support QEMU/arm machvirt machine type (<code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">virt</span></code>) both in AArch64 and AArch32.</p></li>
+<li><p>support virtio block, network and SCSI devices.</p></li>
+<li><p>need QEMU &gt;= 2.2 and built for aarch64-softmmu/arm-softmmu</p></li>
+<li><p>QEMU_EFI.fd is Tianocore EDK2’s ArmVirtPkg/ArmVirtQemu.dsc (<a class="reference external" href="https://github.com/tianocore/edk2">https://github.com/tianocore/edk2</a>)</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Ubuntu Server ISO for AArch64</p>
+<ul class="simple">
+<li><p><a class="reference external" href="http://cdimage.ubuntu.com/releases/16.04.2/release/">16.04.2 (ubuntu xenial) release</a></p></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>QEMU running command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">enable</span><span class="o">-</span><span class="n">kvm</span> <span class="o">-</span><span class="n">cpu</span> <span class="n">host</span> \
+    <span class="o">-</span><span class="n">M</span> <span class="n">virt</span> <span class="o">-</span><span class="n">bios</span> <span class="n">QEMU_EFI</span><span class="o">.</span><span class="n">fd</span> \
+    <span class="o">-</span><span class="n">m</span> <span class="mi">1024</span> <span class="o">-</span><span class="n">smp</span> <span class="mi">4</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">id</span><span class="o">=</span><span class="n">cdrom1</span><span class="p">,</span><span class="n">media</span><span class="o">=</span><span class="n">cdrom</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="n">file</span><span class="o">=&lt;</span><span class="n">ubuntu_install_iso</span><span class="o">&gt;</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">scsi</span><span class="o">-</span><span class="n">device</span> <span class="o">-</span><span class="n">device</span> <span class="n">scsi</span><span class="o">-</span><span class="n">cd</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">cdrom1</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">id</span><span class="o">=</span><span class="n">hd0</span><span class="p">,</span><span class="n">media</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">format</span><span class="o">=</span><span class="n">qcow2</span><span class="p">,</span><span class="n">file</span><span class="o">=&lt;</span><span class="n">ubuntu_qcow2_image</span><span class="o">&gt;</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">hd0</span> \
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">user</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">user</span> <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">user</span>
+
+<span class="c1"># input:</span>
+<span class="c1">#   Ubuntu ISO path</span>
+<span class="c1">#   Ubuntu qcow2 path</span>
+</pre></div>
+</div>
+</li>
+<li><p>Ubuntu installation</p></li>
+</ul>
+<div class="section" id="boot-up-issue-uefi">
+<span id="boot-uefi-issue"></span><h3>boot up issue(UEFI)<a class="headerlink" href="#boot-up-issue-uefi" title="Permalink to this headline">¶</a></h3>
+<p>Booting up is blocking at EFI menu for arm64 rootfs of ubuntu, debian, and fedora.</p>
+<p>2 solutions</p>
+<ol class="arabic simple">
+<li><p>execute EFI bootup script in EFI shell <code class="docutils literal notranslate"><span class="pre">EFI\ubuntu\grubaa64.efi</span></code></p></li>
+<li><p>write a EFI script <code class="docutils literal notranslate"><span class="pre">startup.nsh</span></code> to execute EFI bootup script</p></li>
+</ol>
+<p><a class="reference external" href="https://wiki.debian.org/UEFI#Booting_a_UEFI_machine_normally">EFISTUB path</a></p>
+</div>
+</div>
+<div class="section" id="running-and-usage">
+<h2>Running and Usage<a class="headerlink" href="#running-and-usage" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>QEMU running command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
+    <span class="o">-</span><span class="n">enable</span><span class="o">-</span><span class="n">kvm</span> <span class="o">-</span><span class="n">cpu</span> <span class="n">host</span> \
+    <span class="o">-</span><span class="n">M</span> <span class="n">virt</span> <span class="o">-</span><span class="n">bios</span> <span class="n">QEMU_EFI</span><span class="o">.</span><span class="n">fd</span> \
+    <span class="o">-</span><span class="n">m</span> <span class="mi">1024</span> <span class="o">-</span><span class="n">smp</span> <span class="mi">4</span> \
+    <span class="o">-</span><span class="n">nographic</span> \
+    <span class="o">-</span><span class="n">drive</span> <span class="nb">id</span><span class="o">=</span><span class="n">hd0</span><span class="p">,</span><span class="n">media</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span><span class="k">if</span><span class="o">=</span><span class="n">none</span><span class="p">,</span><span class="nb">format</span><span class="o">=</span><span class="n">qcow2</span><span class="p">,</span><span class="n">file</span><span class="o">=&lt;</span><span class="n">ubuntu_qcow2_image</span><span class="o">&gt;</span> \
+    <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">blk</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">drive</span><span class="o">=</span><span class="n">hd0</span> \
+    <span class="o">-</span><span class="n">netdev</span> <span class="n">user</span><span class="p">,</span><span class="nb">id</span><span class="o">=</span><span class="n">user</span> <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">user</span>
+
+<span class="c1"># input:</span>
+<span class="c1">#   Ubuntu qcow2 path</span>
+</pre></div>
+</div>
+</li>
+<li><p>guest network: dhcp:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">dhclient</span> <span class="o">-</span><span class="n">v</span> <span class="n">enp0s1</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Ubuntu Server on qemu-system-aarch64/kvm</a><ul>
+<li><a class="reference internal" href="#preparation">Preparation</a></li>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#boot-up-issue-uefi">boot up issue(UEFI)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#running-and-usage">Running and Usage</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../platform.html">Platform Installations</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guest_image.html">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kgdb_internal_note.html">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/platform/ubuntu_qemu_kvm_aarch64.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

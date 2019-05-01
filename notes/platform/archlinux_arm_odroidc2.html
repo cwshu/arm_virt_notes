@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ArchLinux ARM on odroid c2 &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Prepare AArch64 Linux guest OS image" href="guest_image.html" />
+    <link rel="prev" title="Ubuntu Server on qemu-system-aarch64/kvm" href="ubuntu_qemu_kvm_aarch64.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="archlinux-arm-on-odroid-c2">
+<h1>ArchLinux ARM on odroid c2<a class="headerlink" href="#archlinux-arm-on-odroid-c2" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>installation guide: <a class="reference external" href="https://archlinuxarm.org/platforms/armv8/amlogic/odroid-c2">https://archlinuxarm.org/platforms/armv8/amlogic/odroid-c2</a></p></li>
+<li><p>default login: dhcp over ethernet + ssh, usr/pwd: alarm/alarm</p></li>
+</ul>
+<div class="section" id="some-issue">
+<h3>some issue<a class="headerlink" href="#some-issue" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>ext4 metadata checksum</p>
+<ul>
+<li><p>Why we use options to format ext4 fs: <code class="docutils literal notranslate"><span class="pre">mkfs.ext4</span> <span class="pre">-O</span> <span class="pre">^metadata_csum,^64bit</span> <span class="pre">/dev/sdX1</span></code></p></li>
+<li><p><a class="reference external" href="https://archlinuxarm.org/forum/viewtopic.php?f=65&amp;t=10560#p52600">Re: ODROID-C2 won’t boot to Arch but it will to Ubuntu [SOLVED]</a></p></li>
+<li><p><a class="reference external" href="https://ext4.wiki.kernel.org/index.php/Ext4_Metadata_Checksums">https://ext4.wiki.kernel.org/index.php/Ext4_Metadata_Checksums</a></p></li>
+</ul>
+</li>
+<li><p>how to serial console on odroid c2</p>
+<ul>
+<li><p><a class="reference external" href="http://www.hardkernel.com/main/products/prdt_info.php?g_code=G134111883934">UART to USB Module Kit</a></p></li>
+<li><p><a class="reference external" href="https://ridderbusch.name/post/2016-06-10-serial-for-odroid/">Serial connection for Odroid</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>use package management system</p>
+<ul>
+<li><p>update package database first, or you may not find package because of wrong package version:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">su</span> <span class="n">root</span>
+<span class="n">pacman</span> <span class="o">-</span><span class="n">Syy</span>
+
+<span class="c1"># download URL is based on package version.</span>
+</pre></div>
+</div>
+</li>
+<li><p>install basic tools for test:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pacman</span> <span class="o">-</span><span class="n">S</span> <span class="n">sudo</span>
+<span class="n">pacman</span> <span class="o">-</span><span class="n">S</span> <span class="n">git</span> <span class="n">vim</span> <span class="n">tmux</span>
+<span class="n">pacman</span> <span class="o">-</span><span class="n">S</span> <span class="n">htop</span> <span class="n">strace</span> <span class="n">lsof</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="use-kvm-on-odroid-c2">
+<h2>Use KVM on odroid c2<a class="headerlink" href="#use-kvm-on-odroid-c2" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Choose userspace tool:</p>
+<ul class="simple">
+<li><p>build qemu/kvm-tool from scratch</p></li>
+<li><p>use qemu/kvmtool build by VOS [1]</p></li>
+<li><p>use Ubuntu’s QEMU deb package</p></li>
+</ul>
+</li>
+<li><p>Choose guest OS image (Linux): <a class="reference internal" href="guest_image.html"><span class="doc">Prepare AArch64 Linux guest OS image</span></a> for more information.</p>
+<ul class="simple">
+<li><p>Linaro Release by OpenEmbedded: minimal, LAMP</p></li>
+<li><p>Ubuntu cloud image</p></li>
+<li><p>Debian/Ubuntu/Fedora AArch64 release</p></li>
+</ul>
+</li>
+</ol>
+<p>[1] Virtual Open System</p>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>QEMU networking: <a class="reference external" href="https://wiki.gentoo.org/wiki/QEMU/Linux_guest">https://wiki.gentoo.org/wiki/QEMU/Linux_guest</a></p></li>
+</ul>
+<div class="section" id="analysis-difference-of-odroid-c2-rpi3-archlinux-arm">
+<h3>Analysis difference of odroid-c2 / rpi3 ArchLinux ARM<a class="headerlink" href="#analysis-difference-of-odroid-c2-rpi3-archlinux-arm" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>ArchLinux default packages</p>
+<ul>
+<li><p>odroid-c2 v.s. rpi3</p>
+<ul>
+<li><p>kernel + bootloader</p></li>
+<li><p>rpi3 has wireless repo</p></li>
+<li><p>odroid-c2 has initramfs repo</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ArchLinux ARM on odroid c2</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#some-issue">some issue</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li><a class="reference internal" href="#use-kvm-on-odroid-c2">Use KVM on odroid c2</a></li>
+<li><a class="reference internal" href="#misc">Misc</a><ul>
+<li><a class="reference internal" href="#analysis-difference-of-odroid-c2-rpi3-archlinux-arm">Analysis difference of odroid-c2 / rpi3 ArchLinux ARM</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../platform.html">Platform Installations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guest_image.html">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kgdb_internal_note.html">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/platform/archlinux_arm_odroidc2.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

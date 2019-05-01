@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linux Kernel Event Tracing in KVM &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Linux Device Driver" href="../device_driver.html" />
+    <link rel="prev" title="KVM source code resource" href="kvm_resources.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="linux-kernel-event-tracing-in-kvm">
+<h1>Linux Kernel Event Tracing in KVM<a class="headerlink" href="#linux-kernel-event-tracing-in-kvm" title="Permalink to this headline">¶</a></h1>
+<p>using frontend trace-cmd</p>
+<p>prepare:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git clone git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/trace-cmd.git trace-cmd
+$ make   # generate ./trace-cmd
+
+# KVM Tracepoints
+$ cat /sys/kernel/debug/tracing/available_events | grep kvm
+kvm:kvm_entry
+kvm:kvm_hypercall
+kvm:kvm_hv_hypercall
+kvm:kvm_pio
+kvm:kvm_fast_mmio
+...
+
+# source files
+include/trace/events/kvm.h
+arch/arm/kvm/trace.h
+</pre></div>
+</div>
+<p>usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ sudo ./trace-cmd record -b 20000 -e kvm  # generate trace.dat
+$ ./trace-cmd report
+</pre></div>
+</div>
+<div class="section" id="reference">
+<h2>reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>kvm usage</p>
+<ul>
+<li><p><a class="reference external" href="http://www.linux-kvm.org/page/Tracing">http://www.linux-kvm.org/page/Tracing</a></p></li>
+<li><p><a class="reference external" href="http://people.cs.nctu.edu.tw/~chenwj/dokuwiki/doku.php?id=kvm">http://people.cs.nctu.edu.tw/~chenwj/dokuwiki/doku.php?id=kvm</a></p></li>
+</ul>
+</li>
+<li><p>[Doc] trace/events.txt: <a class="reference external" href="http://lxr.free-electrons.com/source/Documentation/trace/events.txt">http://lxr.free-electrons.com/source/Documentation/trace/events.txt</a></p></li>
+<li><p>LWN - Using the TRACE_EVENT() macro (Part 1): <a class="reference external" href="https://lwn.net/Articles/379903/">https://lwn.net/Articles/379903/</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Linux Kernel Event Tracing in KVM</a><ul>
+<li><a class="reference internal" href="#reference">reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/tracepoint.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

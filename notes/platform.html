@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Platform Installations &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Ubuntu Server on qemu-system-aarch64/kvm" href="platform/ubuntu_qemu_kvm_aarch64.html" />
+    <link rel="prev" title="VFIO details" href="vfio/vfio_core2.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="platform-installations">
+<h1>Platform Installations<a class="headerlink" href="#platform-installations" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="platform/ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="platform/ubuntu_qemu_kvm_aarch64.html#preparation">Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/ubuntu_qemu_kvm_aarch64.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/ubuntu_qemu_kvm_aarch64.html#running-and-usage">Running and Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html#use-kvm-on-odroid-c2">Use KVM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html#misc">Misc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="platform/guest_image.html">Prepare AArch64 Linux guest OS image</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="platform/guest_image.html#problems-in-aarch64-iso-installed-rootfs">Problems in AArch64 ISO installed rootfs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/guest_image.html#misc">Misc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="platform/kgdb_internal_note.html">KGDB internal note</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="platform/kgdb_internal_note.html#kgdboc-init">kgdboc init</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/kgdb_internal_note.html#kgdb">KGDB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/kgdb_internal_note.html#tty-and-console">TTY and console</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/kgdb_internal_note.html#uart">UART</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vfio.html">VFIO</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Platform Installations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="platform/ubuntu_qemu_kvm_aarch64.html">Ubuntu Server on qemu-system-aarch64/kvm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/archlinux_arm_odroidc2.html">ArchLinux ARM on odroid c2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/guest_image.html">Prepare AArch64 Linux guest OS image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform/kgdb_internal_note.html">KGDB internal note</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/notes/platform.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

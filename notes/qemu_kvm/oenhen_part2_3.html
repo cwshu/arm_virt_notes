@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Oenhan KVM note &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="KVM source code resource" href="kvm_resources.html" />
+    <link rel="prev" title="KVM run and exit" href="run_and_exit.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="oenhan-kvm-note">
+<h1>Oenhan KVM note<a class="headerlink" href="#oenhan-kvm-note" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="part2-vm-run">
+<h2>Part2 VM RUN<a class="headerlink" href="#part2-vm-run" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://www.oenhan.com/kvm-src-2-vm-run">http://www.oenhan.com/kvm-src-2-vm-run</a></p>
+<ul class="simple">
+<li><p>ioctl 介面</p>
+<ul>
+<li><p>3 介面</p></li>
+<li><p>kvm: create_vm</p></li>
+<li><p>kvm_vm: create_vcpu, set_user_memory_region, create_device</p></li>
+<li><p>kvm_vcpu: run</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vl.c</span></code> 的 main()</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">util/module.c</span></code>, <code class="docutils literal notranslate"><span class="pre">util/qemu-config.c</span></code></p></li>
+<li><p>atexit(), qemu_run_exit_notifier</p></li>
+<li><p>kvm_init() (by type_init() + module_call_init(), read module init mechanism for detail )</p></li>
+<li><p>cpu_exec_init_all()</p></li>
+<li><p>cpudef_init()</p></li>
+<li><p>qemu_set_log()</p></li>
+<li><p>reads ./qemu_system_init.rst for machine init(e.g. <code class="docutils literal notranslate"><span class="pre">pc_init1()</span></code>) and device init</p></li>
+</ul>
+<div class="section" id="module-init-mechanism">
+<h3>module init mechanism<a class="headerlink" href="#module-init-mechanism" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>module_call_init()</p>
+<ul>
+<li><p>type: BLOCK, MACHINE, QAPI, QOM. (current / QEMU 2.7) MACHINE 換成 OPT 了.</p></li>
+<li><p>function linked list: <code class="docutils literal notranslate"><span class="pre">ModuleTypeList</span></code>, image</p></li>
+<li><p>foreach <code class="docutils literal notranslate"><span class="pre">ModuleEntry</span></code> e in <code class="docutils literal notranslate"><span class="pre">ModuleTypeList</span></code>: e-&gt;init()</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ModuleTypeList</span></code> 註冊</p>
+<ul>
+<li><p>module_init() 處理註冊, use <code class="docutils literal notranslate"><span class="pre">__attribute__((constructor))</span></code> =&gt; 在 main 之前執行.</p></li>
+<li><p>block_init(f) =&gt; module_init(f, MODULE_INIT_BLOCK), register_module_init(f, MODULE_INIT_BLOCK)</p></li>
+<li><p>DEFINE_I440FX_MACHINE(), DEFINE_PC_MACHINE()</p>
+<ul>
+<li><p>pc_init_##suffix(), pc_machine_##suffix##_class_init()</p></li>
+<li><p>pc_machine_init_##suffix()</p></li>
+<li><p>pc_init1(machine)</p></li>
+<li><p>type_register(&amp;pc_machine_type_##suffix)</p></li>
+<li><p>machine_init(pc_machine_init_##suffix)</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ModuleEntry</span></code></p>
+<ul>
+<li><p>3 member: init(), next pointer, <code class="docutils literal notranslate"><span class="pre">module_init_type</span></code></p></li>
+</ul>
+</li>
+<li><p>example</p>
+<ul>
+<li><p>module_call_init(MODULE_INIT_QOM);</p></li>
+<li><p>module_call_init(MODULE_INIT_OPTS);</p></li>
+<li><p>type_init(kvm_type_init）-&gt; kvm_accel_type -&gt; kvm_accel_class_init -&gt; kvm_init</p></li>
+</ul>
+</li>
+<li><p>module_init(MODULE_INIT_MACHINE) 是讓 mc-&gt;init = pc_init1.
+然後當 machine_class = find_default_machine() 時, machine_class 的 init 就會執行 pc_init1()</p></li>
+</ul>
+</div>
+<div class="section" id="pc-init1">
+<h3>pc_init1()<a class="headerlink" href="#pc-init1" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="pc-cpus-init">
+<h4>pc_cpus_init()<a class="headerlink" href="#pc-cpus-init" title="Permalink to this headline">¶</a></h4>
+<ul>
+<li><p>cpu_model: builtin_x86_defs</p>
+<ul class="simple">
+<li><p>“SandyBridge”, x86 CPUID flags … etc.</p></li>
+</ul>
+</li>
+<li><p>for loop: pc_new_cpu() =&gt; cpu_x86_create()</p>
+<ul class="simple">
+<li><p>fill in <code class="docutils literal notranslate"><span class="pre">CPUX86State</span></code></p></li>
+</ul>
+</li>
+<li><p>x86_cpu_realizefn() =&gt; qemu_init_vcpu() =&gt; qemu_kvm_start_vcpu():</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>//创建VPU对于的qemu线程，线程函数是qemu_kvm_cpu_thread_fn
+qemu_thread_create(cpu-&gt;thread, thread_name, qemu_kvm_cpu_thread_fn,
+                   cpu, QEMU_THREAD_JOINABLE);
+
+//如果线程没有创建成功，则一直在此处循环阻塞。说明多核vcpu的创建是顺序的
+while (!cpu-&gt;created) {
+    qemu_cond_wait(&amp;qemu_cpu_cond, &amp;qemu_global_mutex);
+}
+</pre></div>
+</div>
+</li>
+<li><p>qemu_kvm_cpu_thread_fn(): 真正的 cpu thread 函數.</p>
+<ul class="simple">
+<li><p>kvm_init_vcpu()</p>
+<ul>
+<li><p>KVM_CREATE_VCPU</p></li>
+<li><p>KVM_GET_VCPU_MMAP_SIZE get memory mapping of <code class="docutils literal notranslate"><span class="pre">env-&gt;kvm_run</span></code>.</p></li>
+<li><p>kvm_arch_init_vcpu()</p></li>
+</ul>
+</li>
+<li><p>qemu_kvm_init_cpu_signals(): KVM_SET_SIGNAL_MASK</p></li>
+<li><p>qemu_cond_signal(&amp;qemu_cpu_cond) =&gt; kvm_cpu_exec(env) in while loop</p></li>
+<li><p>kvm_cpu_exec(): KVM_RUN</p></li>
+</ul>
+</li>
+<li><p>sources</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hw/i386/pc.c</span></code>: pc_cpus_init(), pc_new_cpu()</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target-i386/cpu.c</span></code>: x86_cpu_realizefn()</p>
+<ul>
+<li><p>(register and invoke) TypeInfo x86_cpu_type_info =&gt; x86_cpu_common_class_init() =&gt; x86_cpu_realizefn()</p></li>
+<li><p>qom or qobject model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target-i386/cpu-qom.h</span></code>: X86_CPU()</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/qom/object.h</span></code>: OBJECT_CHECK()</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cpus.c</span></code>: qemu_init_vcpu(), qemu_kvm_start_vcpu(), qemu_kvm_cpu_thread_fn()</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="pc-memory-init">
+<h4>pc_memory_init()<a class="headerlink" href="#pc-memory-init" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+</div>
+<div class="section" id="part3-cpu-virtualization">
+<h2>Part3 CPU Virtualization<a class="headerlink" href="#part3-cpu-virtualization" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://www.oenhan.com/kvm-src-3-cpu">http://www.oenhan.com/kvm-src-3-cpu</a></p>
+<ul class="simple">
+<li><p>cpu virtualization: time-sharing</p>
+<ul>
+<li><p>restore state (for context switch): VMCS, VMExit reason … etc</p></li>
+<li><p>resource isolation: VMX root mode</p></li>
+</ul>
+</li>
+<li><p>VMCS register</p>
+<ul>
+<li><p>VM-execution controls: Determines what operations cause VM exits</p></li>
+<li><p>Guest-state and Host-state area: Guest/Host OS state for context switch (save &amp; restore)</p></li>
+<li><p>VM-exit controls: Example: MSR save-load list</p></li>
+<li><p>VM-entry controls: Including injecting events (interrupts, exceptions) on entry</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Oenhan KVM note</a><ul>
+<li><a class="reference internal" href="#part2-vm-run">Part2 VM RUN</a><ul>
+<li><a class="reference internal" href="#module-init-mechanism">module init mechanism</a></li>
+<li><a class="reference internal" href="#pc-init1">pc_init1()</a><ul>
+<li><a class="reference internal" href="#pc-cpus-init">pc_cpus_init()</a></li>
+<li><a class="reference internal" href="#pc-memory-init">pc_memory_init()</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#part3-cpu-virtualization">Part3 CPU Virtualization</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/oenhen_part2_3.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

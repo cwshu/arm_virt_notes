@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hardware IO in linux driver &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Ch10 Interrupt Handling" href="ch10.html" />
+    <link rel="prev" title="Linux Network Driver" href="../net_driver/linux_net_driver.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="hardware-io-in-linux-driver">
+<h1><a class="toc-backref" href="#id1">Hardware IO in linux driver</a><a class="headerlink" href="#hardware-io-in-linux-driver" title="Permalink to this headline">¶</a></h1>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#hardware-io-in-linux-driver" id="id1">Hardware IO in linux driver</a></p>
+<ul>
+<li><p><a class="reference internal" href="#outline" id="id2">Outline</a></p></li>
+<li><p><a class="reference internal" href="#request-mem-region" id="id3">request_mem_region</a></p></li>
+<li><p><a class="reference internal" href="#ioremap-internal" id="id4">ioremap internal</a></p></li>
+<li><p><a class="reference internal" href="#devm-device-resource-management" id="id5">devm: device resource management</a></p></li>
+<li><p><a class="reference internal" href="#reference" id="id6">Reference</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="outline">
+<h2><a class="toc-backref" href="#id2">Outline</a><a class="headerlink" href="#outline" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>Functions that handle resource allocation for memory regions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">resource</span> <span class="o">*</span><span class="n">request_mem_region</span><span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span> <span class="n">start</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="nb">len</span><span class="p">,</span> <span class="n">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">release_mem_region</span><span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span> <span class="n">start</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="nb">len</span><span class="p">);</span>
+<span class="nb">int</span> <span class="n">check_mem_region</span><span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span> <span class="n">start</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="nb">len</span><span class="p">);</span>
+
+<span class="c1"># allocated memory is shown at /proc/iomem</span>
+</pre></div>
+</div>
+</li>
+<li><p>ioremap remaps a physical address range into the processor’s virtual address
+space, making it available to the kernel. iounmap frees the mapping when it is no
+longer needed.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;asm/io.h&gt;</span>
+<span class="n">void</span> <span class="o">*</span><span class="n">ioremap</span><span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span> <span class="n">phys_addr</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">size</span><span class="p">);</span>
+<span class="n">void</span> <span class="o">*</span><span class="n">ioremap_nocache</span><span class="p">(</span><span class="n">unsigned</span> <span class="n">long</span> <span class="n">phys_addr</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">size</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iounmap</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">virt_addr</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Accessor functions that are used to work with I/O memory.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;asm/io.h&gt;</span>
+<span class="n">unsigned</span> <span class="nb">int</span> <span class="n">ioread8</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+<span class="n">unsigned</span> <span class="nb">int</span> <span class="n">ioread16</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+<span class="n">unsigned</span> <span class="nb">int</span> <span class="n">ioread32</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite8</span><span class="p">(</span><span class="n">u8</span> <span class="n">value</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite16</span><span class="p">(</span><span class="n">u16</span> <span class="n">value</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite32</span><span class="p">(</span><span class="n">u32</span> <span class="n">value</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>“Repeating” versions of the I/O memory primitives.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">ioread8_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">ioread16_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">ioread32_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite8_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">const</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite16_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">const</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+<span class="n">void</span> <span class="n">iowrite32_rep</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">const</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">unsigned</span> <span class="n">long</span> <span class="n">count</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="request-mem-region">
+<h2><a class="toc-backref" href="#id3">request_mem_region</a><a class="headerlink" href="#request-mem-region" title="Permalink to this headline">¶</a></h2>
+<ol class="loweralpha simple">
+<li><p>resource</p></li>
+</ol>
+<blockquote>
+<div><p>iomem_resource, ioport_resource:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">kernel</span><span class="o">/</span><span class="n">resource</span><span class="o">.</span><span class="n">c</span>
+<span class="n">struct</span> <span class="n">resource</span> <span class="n">iomem_resource</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="o">.</span><span class="n">name</span>   <span class="o">=</span> <span class="s2">&quot;PCI mem&quot;</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">start</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">end</span>    <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">flags</span>  <span class="o">=</span> <span class="n">IORESOURCE_MEM</span><span class="p">,</span>
+<span class="p">};</span>
+<span class="n">EXPORT_SYMBOL</span><span class="p">(</span><span class="n">iomem_resource</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>struct resource:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// include/linux/ioport.h
+struct resource {
+    // memory address?
+    resource_size_t start;
+    resource_size_t end;
+
+    const char *name;
+    unsigned long flags;
+    unsigned long desc;
+
+    // left-child right-sibling tree
+    struct resource *parent, *sibling, *child;
+};
+</pre></div>
+</div>
+</div></blockquote>
+<ol class="loweralpha" start="2">
+<li><p>request API</p>
+<ul>
+<li><p>request_mem_region() wrapper:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#define request_mem_region(start,n,name) __request_region(&amp;iomem_resource, (start), (n), (name), 0)</span>
+<span class="c1">#define request_region(start,n,name)     __request_region(&amp;ioport_resource, (start), (n), (name), 0)</span>
+</pre></div>
+</div>
+</li>
+<li><p>__request_region()</p>
+<ul class="simple">
+<li><p>alloc_resource(): allocate struct resource and return</p></li>
+<li><p>__request_resource(): add new resource to the child of parent resource.</p></li>
+</ul>
+</li>
+<li><p>alloc/free resource</p>
+<ul class="simple">
+<li><p>alloc_resource(): allocate struct resource and return</p>
+<ul>
+<li><ol class="arabic simple">
+<li><p>allocate from freelist(bootmem_resource_free) + memset()</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="2">
+<li><p>kzalloc()</p></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>free_resource(): (1) kfree() (2) free to freelist(bootmem_resource_free)</p>
+<ul>
+<li><p>PageSlab(virt_to_head_page(res))</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/proc/iomem</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">kernel</span><span class="o">/</span><span class="n">resource</span><span class="o">.</span><span class="n">c</span>
+<span class="n">__initcall</span><span class="p">(</span><span class="n">ioresources_init</span><span class="p">);</span>
+<span class="n">static</span> <span class="nb">int</span> <span class="n">__init</span> <span class="n">ioresources_init</span><span class="p">(</span><span class="n">void</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">proc_create</span><span class="p">(</span><span class="s2">&quot;ioports&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">proc_ioports_operations</span><span class="p">);</span>
+    <span class="n">proc_create</span><span class="p">(</span><span class="s2">&quot;iomem&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">proc_iomem_operations</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">static</span> <span class="n">const</span> <span class="n">struct</span> <span class="n">file_operations</span> <span class="n">proc_iomem_operations</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="o">.</span><span class="n">open</span>       <span class="o">=</span> <span class="n">iomem_open</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">read</span>       <span class="o">=</span> <span class="n">seq_read</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">llseek</span>     <span class="o">=</span> <span class="n">seq_lseek</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">release</span>    <span class="o">=</span> <span class="n">seq_release</span><span class="p">,</span>
+<span class="p">};</span>
+
+<span class="n">static</span> <span class="n">const</span> <span class="n">struct</span> <span class="n">seq_operations</span> <span class="n">resource_op</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="o">.</span><span class="n">start</span>  <span class="o">=</span> <span class="n">r_start</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">next</span>   <span class="o">=</span> <span class="n">r_next</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">stop</span>   <span class="o">=</span> <span class="n">r_stop</span><span class="p">,</span>
+    <span class="o">.</span><span class="n">show</span>   <span class="o">=</span> <span class="n">r_show</span><span class="p">,</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</li>
+<li><p>reserve at init API</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// kernel/resource.c
+__setup(&quot;reserve=&quot;, reserve_setup);
+#define MAXRESERVE 4
+static int __init reserve_setup(char *str)
+{
+    static int reserved;
+    static struct resource reserve[MAXRESERVE];
+
+    for (;;) {
+        unsigned int io_start, io_num;
+        int x = reserved;
+
+        if (get_option (&amp;str, &amp;io_start) != 2)
+            break;
+        if (get_option (&amp;str, &amp;io_num)   == 0)
+            break;
+        if (x &lt; MAXRESERVE) {
+            struct resource *res = reserve + x;
+            res-&gt;name = &quot;reserved&quot;;
+            res-&gt;start = io_start;
+            res-&gt;end = io_start + io_num - 1;
+            res-&gt;flags = IORESOURCE_BUSY;
+            res-&gt;desc = IORES_DESC_NONE;
+            res-&gt;child = NULL;
+            if (request_resource(res-&gt;start &gt;= 0x10000 ? &amp;iomem_resource : &amp;ioport_resource, res) == 0)
+                reserved = x+1;
+         }
+    }
+    return 1;
+}
+</pre></div>
+</div>
+</li>
+</ol>
+<p>resource:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>kernel/resource.c
+- struct resource ioport_resource, iomem_resource
+- proc_ioport, proc_iomem // seq_operations traverse resource tree?
+- request, release, find
+- devm version
+- __init reserve_setup
+
+
+include/linux/resource.h
+include/uapi/linux/resource.h
+</pre></div>
+</div>
+<p>bootmem:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mm</span><span class="o">/</span><span class="n">bootmem</span><span class="o">.</span><span class="n">c</span>
+<span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">bootmem</span><span class="o">.</span><span class="n">h</span>
+
+<span class="o">//</span> <span class="n">More</span>
+<span class="n">drivers</span><span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">memory</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">The</span> <span class="n">probe</span> <span class="n">routines</span> <span class="n">leave</span> <span class="n">the</span> <span class="n">pages</span> <span class="n">reserved</span><span class="p">,</span> <span class="n">just</span> <span class="k">as</span> <span class="n">the</span> <span class="n">bootmem</span> <span class="n">code</span> <span class="n">does</span><span class="o">.</span>
+<span class="n">drivers</span><span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">dma</span><span class="o">-</span><span class="n">contiguous</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">called</span> <span class="n">by</span> <span class="n">arch</span> <span class="n">specific</span> <span class="n">code</span> <span class="n">once</span> <span class="n">the</span> <span class="n">early</span> <span class="n">allocator</span> <span class="p">(</span><span class="n">memblock</span> <span class="ow">or</span> <span class="n">bootmem</span><span class="p">)</span>
+<span class="n">drivers</span><span class="o">/</span><span class="n">base</span><span class="o">/</span><span class="n">platform</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="c1">#include&lt;linux/bootmem.h&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ioremap-internal">
+<h2><a class="toc-backref" href="#id4">ioremap internal</a><a class="headerlink" href="#ioremap-internal" title="Permalink to this headline">¶</a></h2>
+<p>callstack (x86):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">__iomem</span> <span class="o">*</span><span class="n">ioremap</span><span class="p">()</span> <span class="n">at</span> <span class="n">arch</span><span class="o">/</span><span class="n">x86</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">io</span><span class="o">.</span><span class="n">h</span>
+<span class="n">void</span> <span class="n">__iomem</span> <span class="o">*</span><span class="n">ioremap_nocache</span><span class="p">()</span> <span class="n">at</span> <span class="n">arch</span><span class="o">/</span><span class="n">x86</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">ioremap</span><span class="o">.</span><span class="n">c</span>
+<span class="n">void</span> <span class="n">__iomem</span> <span class="o">*</span><span class="n">__ioremap_caller</span><span class="p">()</span> <span class="n">at</span> <span class="n">arch</span><span class="o">/</span><span class="n">x86</span><span class="o">/</span><span class="n">mm</span><span class="o">/</span><span class="n">ioremap</span><span class="o">.</span><span class="n">c</span>
+<span class="nb">int</span> <span class="n">ioremap_page_range</span><span class="p">()</span> <span class="n">at</span> <span class="n">lib</span><span class="o">/</span><span class="n">ioremap</span><span class="o">.</span><span class="n">c</span>
+</pre></div>
+</div>
+<p>callstack (arm64):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span>
+</pre></div>
+</div>
+<p>ioremap_page_range(addr, end, phys_addr, prot):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">lib</span><span class="o">/</span><span class="n">ioremap</span><span class="o">.</span><span class="n">c</span>
+<span class="nb">map</span> <span class="n">vaddr</span><span class="o">=</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="n">to</span> <span class="n">paddr</span><span class="o">=</span><span class="p">(</span><span class="n">phys_addr</span><span class="p">,</span> <span class="n">phys_addr</span> <span class="o">+</span> <span class="n">end</span><span class="o">-</span><span class="n">addr</span><span class="p">),</span> <span class="n">pgtable</span> <span class="n">permission</span> <span class="ow">is</span> <span class="n">prot</span><span class="o">.</span>
+<span class="n">use</span> <span class="n">vaddr</span> <span class="n">to</span> <span class="n">find</span> <span class="n">correct</span> <span class="n">pte</span><span class="p">(</span><span class="nb">range</span> <span class="n">of</span> <span class="n">ptes</span><span class="p">),</span> <span class="n">than</span> <span class="nb">set</span> <span class="n">pte</span> <span class="o">=</span> <span class="p">(</span><span class="n">paddr</span><span class="p">,</span> <span class="n">prot</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">compare</span> <span class="n">to</span> <span class="n">remap_pfn_range</span><span class="p">()</span> <span class="ow">in</span> <span class="n">mm</span><span class="o">/</span><span class="n">memory</span><span class="o">.</span><span class="n">c</span>
+</pre></div>
+</div>
+<p>misc:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pgd</span> <span class="o">=</span> <span class="n">pgd_offset_k</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+<span class="n">pud</span> <span class="o">=</span> <span class="n">pud_alloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">init_mm</span><span class="p">,</span> <span class="n">pgd</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+<span class="n">pmd</span> <span class="o">=</span> <span class="n">pmd_alloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">init_mm</span><span class="p">,</span> <span class="n">pud</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+<span class="n">pte</span> <span class="o">=</span> <span class="n">pte_alloc_kernel</span><span class="p">(</span><span class="n">pmd</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span>     <span class="o">=&gt;</span> <span class="n">pte_offset_kernel</span><span class="p">(</span><span class="n">pmd</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span>
+
+<span class="o">//</span> <span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">-</span><span class="n">generic</span><span class="o">/</span><span class="n">pgtable</span><span class="o">.</span><span class="n">h</span>
+<span class="nb">next</span> <span class="o">=</span> <span class="n">pgd_addr_end</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+<span class="nb">next</span> <span class="o">=</span> <span class="n">pud_addr_end</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">end</span><span class="p">);</span>
+<span class="nb">next</span> <span class="o">=</span> <span class="n">pmd_addr_end</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">end</span><span class="p">);</span>
+
+<span class="n">pud_set_huge</span><span class="p">(</span><span class="n">pud</span><span class="p">,</span> <span class="n">phys_addr</span> <span class="o">+</span> <span class="n">addr</span><span class="p">,</span> <span class="n">prot</span><span class="p">)</span>
+<span class="n">pmd_set_huge</span><span class="p">(</span><span class="n">pmd</span><span class="p">,</span> <span class="n">phys_addr</span> <span class="o">+</span> <span class="n">addr</span><span class="p">,</span> <span class="n">prot</span><span class="p">)</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<p>in Linux 4.7:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>include/asm-generic/io.h
+include/asm-generic/iomap.h
+
+include/linux/ioport.h
+include/linux/io-mapping.h ??
+
+include/linux/device.h
+drivers/base/devres.c
+lib/devres.c
+</pre></div>
+</div>
+</div>
+<div class="section" id="devm-device-resource-management">
+<h2><a class="toc-backref" href="#id5">devm: device resource management</a><a class="headerlink" href="#devm-device-resource-management" title="Permalink to this headline">¶</a></h2>
+<p>devm_ioremap_resource() consists of</p>
+<ul class="simple">
+<li><p>devm_request_mem_region() =&gt; __request_region() // p.s. request_mem_region() =&gt; __request_region()</p></li>
+<li><p>devm_ioremap() =&gt; ioremap()</p></li>
+</ul>
+<p>More about devm_request_mem_region()</p>
+<ul class="simple">
+<li><p>=&gt; __devm_request_region() =&gt; devres_alloc() + __request_region()</p></li>
+</ul>
+</div>
+<div class="section" id="reference">
+<h2><a class="toc-backref" href="#id6">Reference</a><a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<p>device resource management</p>
+<ul class="simple">
+<li><p>device resource management: <a class="reference external" href="https://lwn.net/Articles/215996/">https://lwn.net/Articles/215996/</a></p></li>
+<li><p>The managed resource API: <a class="reference external" href="https://lwn.net/Articles/222860/">https://lwn.net/Articles/222860/</a></p></li>
+<li><p><a class="reference external" href="https://www.kernel.org/doc/Documentation/driver-model/devres.txt">https://www.kernel.org/doc/Documentation/driver-model/devres.txt</a></p></li>
+</ul>
+<p>reference</p>
+<ul class="simple">
+<li><p>LDD3 ch9.4: <a class="reference external" href="http://www.makelinux.net/ldd3/chp-9-sect-4">http://www.makelinux.net/ldd3/chp-9-sect-4</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Hardware IO in linux driver</a><ul>
+<li><a class="reference internal" href="#outline">Outline</a></li>
+<li><a class="reference internal" href="#request-mem-region">request_mem_region</a></li>
+<li><a class="reference internal" href="#ioremap-internal">ioremap internal</a></li>
+<li><a class="reference internal" href="#devm-device-resource-management">devm: device resource management</a></li>
+<li><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../net_driver/linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../net_driver/platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../net_driver/stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../net_driver/stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/dma/driver_io.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

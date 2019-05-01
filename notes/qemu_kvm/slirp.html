@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU Slirp Network Backend &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="QEMU/KVM architecture overview" href="qemu_misc_note.html" />
+    <link rel="prev" title="Virtio Network" href="virtio_net.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-slirp-network-backend">
+<h1>QEMU Slirp Network Backend<a class="headerlink" href="#qemu-slirp-network-backend" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">Slirp</span></code> APIs in <code class="docutils literal notranslate"><span class="pre">libslirp.h</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">slirp_input()</span></code>: slirp 透過硬體來 send packet</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slirp_output()</span></code>: 把 packet 送回 guest, 透過 peer 的 <code class="docutils literal notranslate"><span class="pre">receive()</span></code> function (<code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code>)</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>struct Slirp
+
+- void* opaque = (SlirpState*) s; // net_slirp_init()
+- libslirp.h
+
+  - functions
+
+    - slirp_init()
+    - slirp_input()
+    - slirp_pollfds_poll(), slirp_pollfds_fill()
+    - slirp_add_hostfwd(): socreate() Slirp&#39;s socket
+
+  - library user should provide some functions (like callback?)
+
+    - slirp_output(): [net/slirp.c] qemu_send_packet(SlirpState-&gt;nc)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">SlirpState</span></code> wraps <code class="docutils literal notranslate"><span class="pre">Slirp</span></code> API, and provide <code class="docutils literal notranslate"><span class="pre">NetClientInfo</span></code> interface for QEMU Network architecture.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">SlirpState</span>
+
+<span class="o">-</span> <span class="n">Slirp</span><span class="o">*</span> <span class="n">slirp</span><span class="p">:</span> <span class="n">slirp</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="n">qemu</span> <span class="n">net</span> <span class="n">framework</span>
+
+  <span class="o">-</span> <span class="n">slirp_hostfwd</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">Slirp</span><span class="p">::</span><span class="n">slirp_add_hostfwd</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">slirp_guestfwd</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">Slirp</span><span class="p">::</span><span class="n">slirp_add_guestfwd</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">slirp_smb</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">Slirp</span><span class="p">::</span><span class="n">slirp_add_exec</span><span class="p">()</span>
+
+<span class="o">-</span> <span class="n">NetClientState</span> <span class="n">nc</span><span class="p">:</span> <span class="n">interface</span> <span class="n">NetClientState</span>
+
+  <span class="o">-</span> <span class="n">nc</span> <span class="o">=</span> <span class="n">qemu_new_net_client</span><span class="p">(</span><span class="o">&amp;</span><span class="n">net_slirp_info</span><span class="p">,</span> <span class="o">...</span> <span class="p">)</span>
+
+    <span class="o">-</span> <span class="n">nc</span><span class="o">-&gt;</span><span class="n">incoming_queue</span><span class="o">-&gt;</span><span class="n">deliver</span> <span class="o">=</span> <span class="n">qemu_deliver_packet_iov</span><span class="p">()</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+    <span class="o">-</span> <span class="n">nc</span><span class="o">-&gt;</span><span class="n">info</span> <span class="o">=</span> <span class="n">net_slirp_info</span><span class="p">;</span> <span class="p">[</span><span class="mf">2.</span><span class="p">]</span>
+    <span class="o">-</span> <span class="n">nc</span><span class="o">-&gt;</span><span class="n">peer</span> <span class="o">=</span> <span class="n">peer</span><span class="p">;</span> <span class="o">//</span> <span class="n">external</span> <span class="n">parameter</span> <span class="p">[</span><span class="mf">3.</span><span class="p">]</span>
+
+  <span class="o">-</span> <span class="n">nc</span> <span class="n">source</span>
+
+    <span class="mf">1.</span> <span class="n">qemu_new_net_client</span><span class="p">()</span> <span class="n">default</span>
+    <span class="mf">2.</span> <span class="n">struct</span> <span class="n">NetClientInfo</span> <span class="n">net_slirp_info</span><span class="p">;</span> <span class="p">(</span><span class="n">slirp</span> <span class="n">provide</span> <span class="n">NetClientInfo</span> <span class="n">interface</span><span class="p">)</span>
+
+       <span class="o">-</span> <span class="o">.</span><span class="n">receive</span> <span class="o">=</span> <span class="n">net_slirp_receive</span><span class="p">;</span> <span class="n">net_slirp_receive</span><span class="p">()</span> <span class="n">calls</span> <span class="n">Slirp</span><span class="p">::</span><span class="n">slirp_input</span><span class="p">();</span>
+       <span class="o">-</span> <span class="o">.</span><span class="n">cleanup</span> <span class="o">=</span> <span class="n">net_slirp_cleanup</span><span class="p">;</span> <span class="n">net_slirp_cleanup</span><span class="p">()</span> <span class="n">calls</span> <span class="n">SlirpState</span><span class="p">::</span><span class="n">slirp_smb_cleanup</span><span class="p">();</span>
+
+    <span class="mf">3.</span> <span class="kn">from</span> <span class="nn">net_slirp_init</span><span class="p">()</span> <span class="n">function</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">peer</span> <span class="ow">is</span> <span class="n">customizable</span> <span class="n">by</span> <span class="n">function</span> <span class="n">caller</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>socket address mapping(NAPT) and host socket API abstraction</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">socket</span> <span class="p">(</span><span class="n">Slirp</span> <span class="n">socket</span><span class="p">)</span>
+
+<span class="o">-</span> <span class="n">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">so_next</span><span class="p">,</span> <span class="o">*</span><span class="n">so_prev</span><span class="p">:</span> <span class="n">linked</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">sockets</span>
+<span class="o">-</span> <span class="nb">int</span> <span class="n">s</span><span class="p">:</span> <span class="n">actual</span> <span class="n">socket</span> <span class="n">fd</span> <span class="n">number</span>
+<span class="o">-</span> <span class="n">Slirp</span><span class="o">*</span> <span class="n">slirp</span><span class="p">:</span> <span class="n">managing</span> <span class="n">Slirp</span> <span class="n">instance</span>
+<span class="o">-</span> <span class="n">struct</span> <span class="n">sbuf</span> <span class="n">so_rcv</span><span class="p">,</span> <span class="n">so_snd</span><span class="p">:</span> <span class="n">Recv</span><span class="o">/</span><span class="n">Send</span> <span class="n">buffer</span>
+
+<span class="o">-</span> <span class="n">socreate</span><span class="p">(</span><span class="n">Slirp</span><span class="o">*</span> <span class="n">slirp</span><span class="p">):</span>
+
+  <span class="o">-</span> <span class="n">so</span><span class="o">-&gt;</span><span class="n">slirp</span> <span class="o">=</span> <span class="n">slirp</span>
+  <span class="o">-</span> <span class="n">so</span><span class="o">-&gt;</span><span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="p">()</span> <span class="n">syscall</span>
+
+<span class="o">-</span> <span class="n">callers</span> <span class="n">of</span> <span class="n">send</span><span class="p">()</span> <span class="ow">and</span> <span class="n">recv</span><span class="p">()</span> <span class="n">syscall</span>
+
+  <span class="o">-</span> <span class="n">soread</span><span class="p">(),</span> <span class="n">sowrite</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">sosendoob</span><span class="p">(),</span> <span class="n">sorecvoob</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">sosendto</span><span class="p">(),</span> <span class="n">sorecvfrom</span><span class="p">()</span>
+  <span class="o">-</span> <span class="n">slirp_send</span><span class="p">(</span><span class="n">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">so</span><span class="p">,</span> <span class="n">const</span> <span class="n">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">size_t</span> <span class="nb">len</span><span class="p">,</span> <span class="nb">int</span> <span class="n">flags</span><span class="p">):</span> <span class="n">send</span><span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">s</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="section" id="slirp-input">
+<span id="id1"></span><h2>slirp_input()<a class="headerlink" href="#slirp-input" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">slirp_input()</span></code> use system call to send packet to remote OS.
+for loopback network, slirp_input() may send packet back to peer network.</p>
+<p>at least 4 path of <code class="docutils literal notranslate"><span class="pre">slirp_input()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. __libc_send()
+=&gt; slirp_input() =&gt; slirp_send() =&gt; __libc_send()
+
+2. sosendto(): call sendto() syscall, only udp.c &amp; udp6.c use it.
+=&gt; slirp_input() =&gt; sosendto() =&gt; sendto() # syscall
+
+3. slirp_output()
+=&gt; slirp_input() =&gt; tcp_input() =&gt; tcp_output() =&gt; slirp_output()
+=&gt; qemu_send_packet() =&gt; e1000_receive_iov()
+
+4. slirp_output() by arp?
+=&gt; slirp_input() =&gt; arp_input() =&gt; slirp_output()
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>slirp_send() callers</p>
+<ul>
+<li><p>sosendoob()</p></li>
+<li><p>sowrite()</p></li>
+<li><p>sbappend()</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slirp/socket.c</span></code> and <code class="docutils literal notranslate"><span class="pre">slirp/sbuf.c</span></code></p></li>
+</ul>
+</li>
+</ul>
+<div class="section" id="misc">
+<h3>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>struct: NICState, NICInfo, NICPeers</p></li>
+<li><p>caller of <code class="docutils literal notranslate"><span class="pre">slirp_output()</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">slirp_pollfds_poll()</span> <span class="pre">=&gt;</span> <span class="pre">tcp_output()</span> <span class="pre">=&gt;</span> <span class="pre">slirp_output()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ra_timer_handler()</span> <span class="pre">=&gt;</span> <span class="pre">ndp_send_ra()</span> <span class="pre">=&gt;</span> <span class="pre">slirp_output()</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU Slirp Network Backend</a><ul>
+<li><a class="reference internal" href="#slirp-input">slirp_input()</a><ul>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/slirp.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

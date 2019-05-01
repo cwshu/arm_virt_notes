@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Platform Device, Device Tree, and Open Firmware &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="STMicro ethernet driver note" href="stmmac_note.html" />
+    <link rel="prev" title="Ch10 Interrupt Handling" href="../dma/ch10.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="platform-device-device-tree-and-open-firmware">
+<h1>Platform Device, Device Tree, and Open Firmware<a class="headerlink" href="#platform-device-device-tree-and-open-firmware" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="apis">
+<h2>APIs<a class="headerlink" href="#apis" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://english0815.blogspot.tw/2016/05/platformgetresouce-platformgetirq.html">platform_get_resouce 和 platform_get_irq 用法</a></p></li>
+<li><p><a class="reference external" href="http://xillybus.com/tutorials/device-tree-zynq-4">A Tutorial on the Device Tree (Zynq) – Part IV</a></p></li>
+<li><p><a class="reference external" href="http://www.wowotech.net/device_model/dt-code-analysis.html">蜗窝科技 - Device Tree（三）：代码分析</a></p></li>
+</ul>
+<p>從 driver 獲得硬體 resource 的 API 來觀察.</p>
+<ul class="simple">
+<li><p>platform</p>
+<ul>
+<li><p>platform_get_resource(): memory + irq</p></li>
+<li><p>platform_get_irq(): irq</p></li>
+</ul>
+</li>
+<li><p>of</p>
+<ul>
+<li><p>of_address_to_resource()</p></li>
+<li><p>of_irq_get()</p></li>
+</ul>
+</li>
+</ul>
+<p>從 device tree 獲得資料的進行, 有些是 kernel 開機初始化就 access 轉成 data structure [1],
+有些則是 lazy access, 在取用硬體資源前才去跟 device tree 要資料 [2].</p>
+<p>[1] device tree in kernel init:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">__init</span> <span class="n">customize_machine</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">of_platform_populate</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">of_dev_lookup</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">of_address_to_resource</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>[2] lazy access:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">platform_get_irq</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">of_irq_get</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>source code:</p>
+<ul class="simple">
+<li><p>driver/base/platform.c</p></li>
+<li><p>driver/of/*</p></li>
+<li><p>driver/of/platform.c</p></li>
+</ul>
+</div>
+<div class="section" id="device-tree-format">
+<h2>device tree format<a class="headerlink" href="#device-tree-format" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://events.linuxfoundation.org/sites/events/files/slides/petazzoni-device-tree-dummies.pdf">Free Electron - Device Tree for Dummies</a></p></li>
+<li><p><a class="reference external" href="https://elinux.org/Device_Tree_Usage">elinux - Device Tree Usage</a></p></li>
+<li><p>Documentation/devicetree/usage-model.txt</p></li>
+</ul>
+<div class="section" id="notes">
+<h3>notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">compatible</span></code> property: Every node represents a device have <code class="docutils literal notranslate"><span class="pre">compatible</span></code> property.</p>
+<ul>
+<li><p>list of strings</p></li>
+<li><p>first string: the exact device, format is <code class="docutils literal notranslate"><span class="pre">&quot;&lt;manufacturer&gt;,&lt;model&gt;&quot;</span></code></p></li>
+<li><p>following strings: other devices that the device is compatible with</p></li>
+</ul>
+</li>
+<li><p>node name: <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;[&#64;&lt;unit-address&gt;]</span></code></p></li>
+<li><p>address</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">reg</span></code></p></li>
+<li><p>parent’s <code class="docutils literal notranslate"><span class="pre">#address-cells</span></code> and <code class="docutils literal notranslate"><span class="pre">#size-cells</span></code></p></li>
+</ul>
+</li>
+<li><p>interrupt</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">interrupt-controller</span></code>: empty property. this device receive interrupt.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">#interrupt-cells</span></code>, <code class="docutils literal notranslate"><span class="pre">interrupts</span></code>: like <code class="docutils literal notranslate"><span class="pre">#address-cells</span></code> and <code class="docutils literal notranslate"><span class="pre">reg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">interrupt-parent</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Platform Device, Device Tree, and Open Firmware</a><ul>
+<li><a class="reference internal" href="#apis">APIs</a></li>
+<li><a class="reference internal" href="#device-tree-format">device tree format</a><ul>
+<li><a class="reference internal" href="#notes">notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note2.html">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/net_driver/platform_dtb.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

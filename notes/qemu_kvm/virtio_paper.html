@@ -1,0 +1,385 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>virtio-paper &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="virtio-paper">
+<h1>virtio-paper<a class="headerlink" href="#virtio-paper" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://ozlabs.org/~rusty/virtio-spec/virtio-paper.pdf">https://ozlabs.org/~rusty/virtio-spec/virtio-paper.pdf</a></p>
+<div class="section" id="abstract">
+<h2>abstract<a class="headerlink" href="#abstract" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>virtio: a series of efficient, well-maintained Linux drivers</p>
+<ul>
+<li><p>can be adapted for various hypervisor using a shim layer.</p></li>
+</ul>
+</li>
+<li><p>vring: ring buffer transport implementation</p></li>
+<li><p>provide an implementation</p>
+<ul>
+<li><p>presents (1) vring transport (2) device config as a PCI device</p></li>
+<li><p>means:</p>
+<ul>
+<li><p>guest OS merely need a new PCI driver</p></li>
+<li><p>hypervisor only need add vring support to virtual device (they implement)</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>my idea</p>
+<ul>
+<li><p>通用的 (generic) IO PV protocol, 高相容性</p>
+<ul>
+<li><p>向下相容: 不同的 hypervisor 可以使用同一套 IO PV protocol 跟 guest driver 溝通. 如同不同 hypervisor 都使用相同硬體介面.</p></li>
+<li><p>向上相容: [?] 跟原生的 kernel driver 儘量相似, 希望只要改掉硬體介面即可 porting 成 virtio driver.</p></li>
+</ul>
+</li>
+<li><p>protocol 組成</p>
+<ul>
+<li><p>實作必須具有 IO PV 的必備要素, 比如說 transport buffer, vring 便用於此</p></li>
+<li><p>[?] virtio 同時是 protocol, 也是 API layer. 這讓我想到 remote procedure call</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>my idea2</p>
+<ul>
+<li><p>design 目標</p></li>
+<li><p>API (config + transport)</p></li>
+<li><p>應用的 driver, 需要特殊處理的應用: PCI driver</p></li>
+<li><p>效能分析</p></li>
+<li><p>目前有使用的實作</p></li>
+<li><p>未來的擴展</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="table-of-content">
+<h2>Table Of Content<a class="headerlink" href="#table-of-content" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><ol class="arabic simple">
+<li><p>intro</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="2">
+<li><p>virtio: the three goals</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="3">
+<li><p>virtio: a Linux internal abstraction API</p></li>
+</ol>
+<ul class="simple">
+<li><p>Virtqueues: a transport abstraction</p></li>
+</ul>
+</li>
+<li><ol class="arabic simple" start="4">
+<li><p>virtio_ring: a transport implementation for virtio</p></li>
+</ol>
+<ul class="simple">
+<li><p>4.1. a note on Zero-Copy and religion of page flipping</p></li>
+</ul>
+</li>
+<li><ol class="arabic simple" start="5">
+<li><p>current virtio drivers</p></li>
+</ol>
+<ul class="simple">
+<li><p>5.1. virtio block driver</p></li>
+<li><p>5.2. virtio network driver</p></li>
+</ul>
+</li>
+<li><ol class="arabic simple" start="6">
+<li><p>virtio_pci: a PCI implementation of vring and virtio</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="7">
+<li><p>performance</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="8">
+<li><p>adoption</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="9">
+<li><p>future work</p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="10">
+<li><p>conclusions</p></li>
+</ol>
+</li>
+</ul>
+</div>
+<div class="section" id="content">
+<h2>Content<a class="headerlink" href="#content" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="intro">
+<h3>1. intro<a class="headerlink" href="#intro" title="Permalink to this headline">¶</a></h3>
+<p>通用的 IO Para-Virt Protocol, 跨 hypervisor/guest VM.</p>
+</div>
+<div class="section" id="virtio-the-three-goals">
+<h3>2. virtio: the three goals<a class="headerlink" href="#virtio-the-three-goals" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>3 goals</p>
+<ol class="loweralpha simple">
+<li><p>driver unification</p></li>
+<li><p>uniformity to provide common ABI for (1) general publication (2) use of buffer.</p></li>
+<li><p>device probing and config</p></li>
+</ol>
+</li>
+<li><p>如果 developer 熟悉 Linux, 他們可能會直接 map Linux API 在 (virtual IO mechanism?) ABI 上面.</p></li>
+<li><p>cross-device: common ABI for (1) general publication (2) use of buffer.</p></li>
+<li><p>provide a two complete ABI implementations</p>
+<ul>
+<li><p>using (1) virtio_ring infrastructure (2) Linux API for virtual IO device.</p></li>
+<li><p>implement final part of virtual IO device: device probe and config</p></li>
+</ul>
+</li>
+<li><p>explicit seperate (1) driver (2) transport (3) config</p>
+<ul>
+<li><p>反例: 如果其他 hypervisor 要用 Xen Linux network driver, 必須 support Xenbus probing and config system</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="virtio-a-linux-internal-abstraction-api">
+<h3>3. virtio: a Linux internal abstraction API<a class="headerlink" href="#virtio-a-linux-internal-abstraction-api" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>4 parts of config op</p>
+<ol class="loweralpha simple">
+<li><p>RW feature bits</p></li>
+<li><p>RW config space</p></li>
+<li><p>RW status bits</p></li>
+<li><p>device reset</p></li>
+</ol>
+</li>
+<li><p>feature bit</p>
+<ul>
+<li><p>device feature: e.g. VIRTIO_NET_F_CSUM is checksum offload feature of net device</p></li>
+<li><p>device specific</p></li>
+</ul>
+</li>
+<li><p>config space</p>
+<ul>
+<li><p>when device feature VIRTIO_NET_F_MAC is set</p></li>
+<li><p>MAC address of device is in config space</p></li>
+</ul>
+</li>
+<li><p>RW 8 bits status word</p>
+<ul>
+<li><p>indicate device probe</p></li>
+<li><p>VIRTIO_CONFIG_S_DRIVER_OK is set means that host knows what feature it understands and wants to use.</p></li>
+</ul>
+</li>
+</ul>
+<p>Transport Abstraction: Virtqueue</p>
+<ul class="simple">
+<li><p>virtio-blk has one queue</p></li>
+<li><p>virtio-net/console has two queues, input/output both use one.</p></li>
+<li><p>each buffer is a scatter-gather array</p></li>
+<li><p>virtqueue op struct: 5 ops</p>
+<ul>
+<li><p>add_buf</p></li>
+<li><p>kick</p></li>
+<li><p>get_buf</p></li>
+<li><p>enable/disable_cb</p></li>
+</ul>
+</li>
+<li><p>data exchange flow: add_buf() =&gt; kick host() =&gt; host update data =&gt; get_buf()</p></li>
+<li><p>5 ops</p>
+<ul>
+<li><p>disable_cb is a hint that guest doesn’t want to know “when the buffer is used” =&gt; same as disable interrupt.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="virtio-ring-a-transport-implementation-for-virtio">
+<h3>4. virtio_ring: a transport implementation for virtio<a class="headerlink" href="#virtio-ring-a-transport-implementation-for-virtio" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>virtio ring consist of 3 parts</p>
+<ul>
+<li><p>descriptor array: (addr, length) pair chain.</p></li>
+<li><p>avail ring: guest indicate. chain is ready to use.</p></li>
+<li><p>used ring: host indicate. chain is used.</p></li>
+</ul>
+</li>
+<li><p>descriptor array:</p>
+<ul>
+<li><p>(addr, length)</p></li>
+<li><p>optional next</p></li>
+<li><p>flags: 2 bits, 1 for RW, 1 for next option</p></li>
+</ul>
+</li>
+<li><p>used ring 有故意跟 available ring/descriptor array 放在不同 page. 這樣 cache 的表現會比較好.</p></li>
+<li><p>interrupt suppression flag</p>
+<ul>
+<li><p>available ring 跟 used ring 都有.</p></li>
+<li><p>for optimization (virtqueue kick (vmexit/trap) and interrupt completion)</p></li>
+<li><p>available ring 是 guest 用來通知 host 不用送 completion interrupt (disable_cb)</p></li>
+<li><p>used ring 是 host 用來通知 guest 不用 virtqueue kick host.</p></li>
+<li><p>optimization example?</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="a-note-on-zero-copy-and-religion-of-page-flipping">
+<h3>4.1. a note on Zero-Copy and religion of page flipping<a class="headerlink" href="#a-note-on-zero-copy-and-religion-of-page-flipping" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>efficient IO need 2 things</p>
+<ol class="loweralpha simple">
+<li><p>the number of notification per op. =&gt; by virtio_ring interrupt suppression flag.</p></li>
+<li><p>amount of cache-cold data which is accessed.</p></li>
+</ol>
+</li>
+<li><p>Zero-Copy</p></li>
+<li><p>page flipping</p></li>
+</ul>
+</div>
+<div class="section" id="current-virtio-drivers">
+<h3>5. current virtio drivers<a class="headerlink" href="#current-virtio-drivers" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>virtio block driver: single request queue</p>
+<ul>
+<li><p>first 16 byte is RO header = (type, ioprio, sector)</p>
+<ul>
+<li><p>4 kinds of type: R, W, SCSI command, W Barrier</p></li>
+<li><p>IO priority hint</p></li>
+<li><p>sector: 512 bytes offset</p></li>
+</ul>
+</li>
+<li><p>SCSI command: e.g. (a) eject virtual CDROM. (b) implement SCSI HBA over virtio.</p></li>
+</ul>
+</li>
+<li><p>virtio network driver</p>
+<ul>
+<li><p>2 virtqueue: transmission and receiving virtqueue.</p></li>
+<li><p>Virtual HW set large MTU. It reduce the number of hypercall.</p>
+<ul>
+<li><p>large MTU means few PCI transfer to card.</p></li>
+<li><p>In virtual env, it means fewer numbers of calls out from virtual env.</p></li>
+</ul>
+</li>
+<li><p>guest can set interrupt suppression flag for transmission virtqueue. guest doesn’t care when transmission is finish.</p>
+<ul>
+<li><p>The only exception is when the queue is full.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="virtio-pci-a-pci-implementation-of-vring-and-virtio">
+<h3>6. virtio_pci: a PCI implementation of vring and virtio<a class="headerlink" href="#virtio-pci-a-pci-implementation-of-vring-and-virtio" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="performance">
+<h3>7. performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">virtio-paper</a><ul>
+<li><a class="reference internal" href="#abstract">abstract</a></li>
+<li><a class="reference internal" href="#table-of-content">Table Of Content</a></li>
+<li><a class="reference internal" href="#content">Content</a><ul>
+<li><a class="reference internal" href="#intro">1. intro</a></li>
+<li><a class="reference internal" href="#virtio-the-three-goals">2. virtio: the three goals</a></li>
+<li><a class="reference internal" href="#virtio-a-linux-internal-abstraction-api">3. virtio: a Linux internal abstraction API</a></li>
+<li><a class="reference internal" href="#virtio-ring-a-transport-implementation-for-virtio">4. virtio_ring: a transport implementation for virtio</a></li>
+<li><a class="reference internal" href="#a-note-on-zero-copy-and-religion-of-page-flipping">4.1. a note on Zero-Copy and religion of page flipping</a></li>
+<li><a class="reference internal" href="#current-virtio-drivers">5. current virtio drivers</a></li>
+<li><a class="reference internal" href="#virtio-pci-a-pci-implementation-of-vring-and-virtio">6. virtio_pci: a PCI implementation of vring and virtio</a></li>
+<li><a class="reference internal" href="#performance">7. performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/virtio_paper.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

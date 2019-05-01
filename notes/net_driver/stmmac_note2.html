@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>STMicro ethernet driver note 2 &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="DMA note" href="../dma.html" />
+    <link rel="prev" title="STMicro ethernet driver note" href="stmmac_note.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="stmicro-ethernet-driver-note-2">
+<h1>STMicro ethernet driver note 2<a class="headerlink" href="#stmicro-ethernet-driver-note-2" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>stmmac_main.c</p>
+<ul>
+<li><p>net_device_ops.ndo_open() =&gt; stmmac_open()</p></li>
+<li><p>=&gt; alloc_dma_desc_resources()</p></li>
+<li><p>=&gt; stmmac_hw_setup()</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">init_dma_desc_rings(struct</span> <span class="pre">net_device</span> <span class="pre">*dev)</span></code>:</p>
+<ul>
+<li><p>set priv-&gt;dma_buf_sz by priv-&gt;hw-&gt;mode-&gt;set_16kib_bfsize(dev-&gt;mtu)</p></li>
+<li><p>foreach priv-&gt;dma_rx: stmmac_init_rx_buffers() =&gt; __netdev_alloc_skb() + dma_map_single()</p></li>
+<li><p>foreach priv-&gt;dma_tx: zeroing(init) priv-&gt;tx_skbuff_dma[i]?? lazy allocation??</p></li>
+<li><p>stmmac_clear_descriptors(): priv-&gt;hw-&gt;desc-&gt;init_rx_desc()</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stmmac_init_dma_engine(struct</span> <span class="pre">stmmac_priv</span> <span class="pre">*priv)</span> <span class="pre">=&gt;</span> <span class="pre">priv-&gt;hw-&gt;dma-&gt;init()</span></code></p></li>
+<li><p>[mac] priv-&gt;hw-&gt;mac-&gt;set_umac_addr(priv-&gt;ioaddr, dev-&gt;dev_addr, 0);</p></li>
+<li><p>[bus] priv-&gt;plat-&gt;bus_setup(priv-&gt;ioaddr);</p></li>
+<li><p>priv-&gt;hw-&gt;mac-&gt;core_init(priv-&gt;ioaddr, dev-&gt;mtu);</p></li>
+<li><p>stmmac_set_mac(priv-&gt;ioaddr, true): Enable the MAC Rx/Tx</p></li>
+<li><p>stmmac_dma_operation_mode(priv);</p></li>
+<li><p>stmmac_mmc_setup(priv);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stmmac_eee_init(struct</span> <span class="pre">stmmac_priv</span> <span class="pre">*priv)</span></code></p>
+<ul>
+<li><p>phy_init_eee(), priv-&gt;hw-&gt;mac-&gt;set_eee_timer()</p></li>
+<li><p>init_timer(), add_timer(), priv-&gt;hw-&gt;mac-&gt;set_eee_timer()</p></li>
+<li><p>priv-&gt;hw-&gt;mac-&gt;set_eee_pls()</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">STMicro ethernet driver note 2</a><ul>
+<li><a class="reference internal" href="#misc">Misc</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="linux_net_driver.html">Linux Network Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/driver_io.html">Hardware IO in linux driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dma/ch10.html">Ch10 Interrupt Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform_dtb.html">Platform Device, Device Tree, and Open Firmware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stmmac_note.html">STMicro ethernet driver note</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">STMicro ethernet driver note 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/net_driver/stmmac_note2.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

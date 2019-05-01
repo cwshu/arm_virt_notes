@@ -1,0 +1,330 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>QEMU system init &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="QEMU Object Model" href="QOM1.html" />
+    <link rel="prev" title="QEMU/KVM note" href="../qemu_kvm.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="qemu-system-init">
+<h1>QEMU system init<a class="headerlink" href="#qemu-system-init" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic">
+<h2>Basic<a class="headerlink" href="#basic" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>entry point: <code class="docutils literal notranslate"><span class="pre">vl.c::main()</span></code></p>
+<ul>
+<li><p>machine initialization</p>
+<ul>
+<li><p>CLI option <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">&lt;machine&gt;</span></code> decides it.</p></li>
+<li><p>init function: <code class="docutils literal notranslate"><span class="pre">machine_class-&gt;init(machine_class)</span></code></p></li>
+<li><p>initialize motherboard or development board.</p></li>
+<li><p>initialize cpu, memory, bus, devices for motherboard</p></li>
+</ul>
+</li>
+<li><p>misc device init: <code class="docutils literal notranslate"><span class="pre">device_init_func()</span></code></p>
+<ul>
+<li><p>CLI option <code class="docutils literal notranslate"><span class="pre">-device</span> <span class="pre">&lt;device&gt;,&lt;options&gt;</span></code>.</p></li>
+<li><p>for each <code class="docutils literal notranslate"><span class="pre">-device</span></code> in CLI options, call <code class="docutils literal notranslate"><span class="pre">device_init_func()</span></code> to initialize it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_init_func()</span></code> calls <code class="docutils literal notranslate"><span class="pre">dev-&gt;realize()</span></code> to init device.</p></li>
+<li><p>e.g. ivshmem(Inter-VM Share Memory) is initialized by <code class="docutils literal notranslate"><span class="pre">ivshmem_realize()</span></code>.</p></li>
+</ul>
+</li>
+<li><p>QEMU IO thread runs into main loop: <code class="docutils literal notranslate"><span class="pre">main_loop()</span></code></p></li>
+</ul>
+</li>
+<li><p>multi-threading</p>
+<ul>
+<li><p>CPU initialization will create (<code class="docutils literal notranslate"><span class="pre">pthread_create()</span></code>) multiple threads, which is called QEMU vCPU thread.
+The thread number is equals to vCPU number.</p></li>
+<li><p>More: <a class="reference internal" href="qemu_thread_event.html"><span class="doc">QEMU thread and event model</span></a> , <a class="reference internal" href="qemu_misc_note.html"><span class="doc">QEMU/KVM architecture overview</span></a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="machine-init">
+<h2>Machine Init<a class="headerlink" href="#machine-init" title="Permalink to this headline">¶</a></h2>
+<p>all machines are initialized by class <code class="docutils literal notranslate"><span class="pre">init()</span></code> member function.</p>
+<p><code class="docutils literal notranslate"><span class="pre">main()</span></code> runs it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">vl</span><span class="o">.</span><span class="n">c</span><span class="p">::</span><span class="n">main</span><span class="p">()</span>
+<span class="n">current_machine</span> <span class="o">=</span> <span class="n">MACHINE</span><span class="p">(</span><span class="n">object_new</span><span class="p">(</span><span class="n">object_class_get_name</span><span class="p">(</span><span class="n">OBJECT_CLASS</span><span class="p">(</span><span class="n">machine_class</span><span class="p">))));</span>
+<span class="n">machine_class</span><span class="o">-&gt;</span><span class="n">init</span><span class="p">(</span><span class="n">current_machine</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="options">
+<h3>options<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">machine_class-&gt;init()</span></code> depends on CLI option: <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">&lt;machine&gt;</span></code>, and default machine of <code class="docutils literal notranslate"><span class="pre">qemu-system-x86_64</span></code> is i440FX.</p>
+<p><code class="docutils literal notranslate"><span class="pre">machine_class-&gt;init()</span></code> common options</p>
+<ul>
+<li><p>x86 i440FX: <code class="docutils literal notranslate"><span class="pre">pc_init1()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/i386/pc_piix.c</span></code></p></li>
+<li><p>x86 q35: <code class="docutils literal notranslate"><span class="pre">pc_q35_init()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/i386/pc_q35.c</span></code></p></li>
+<li><p>arm virt: <code class="docutils literal notranslate"><span class="pre">machvirt_init()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/arm/virt.c</span></code></p></li>
+<li><p>arm vexpress-a15: <code class="docutils literal notranslate"><span class="pre">vexpress_common_init()</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">a15_daughterboard_init()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/arm/vexpress.c</span></code></p></li>
+<li><p>find more options by QEMU help:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ qemu-system-arm -M help
+
+virt            QEMU 2.8 ARM Virtual Machine (alias of virt-2.8)
+vexpress-a15    ARM Versatile Express for Cortex-A15
+...
+
+# x86 -M help shows pc and q35
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="internal">
+<h3>internal<a class="headerlink" href="#internal" title="Permalink to this headline">¶</a></h3>
+<p>Using i440FX as example. i440FX’s init() is <code class="docutils literal notranslate"><span class="pre">pc_init1()</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pc_init1()</span></code> initialize init cpu, memory, bus, devices for motherboard i440FX.</p>
+<ul class="simple">
+<li><p>CPU: <code class="docutils literal notranslate"><span class="pre">pc_cpus_init()</span></code>. it use <code class="docutils literal notranslate"><span class="pre">pthread_create()</span></code> to create vCPU threads in KVM Mode, and vCPU threads use <code class="docutils literal notranslate"><span class="pre">ioctl(KVM_CREATE_VCPU)</span></code> to runs guest OS.</p></li>
+<li><p>Memory: <code class="docutils literal notranslate"><span class="pre">pc_memory_init()</span></code>. it initialize global variable <code class="docutils literal notranslate"><span class="pre">system_memory</span></code>.</p></li>
+<li><p>VGA: <code class="docutils literal notranslate"><span class="pre">pc_vga_init()</span></code>, it calls realize function of VGA device (e.g. <code class="docutils literal notranslate"><span class="pre">pci_cirrus_vga_realize()</span></code>)</p></li>
+<li><p>NIC: <code class="docutils literal notranslate"><span class="pre">pc_nic_init()</span></code>, it calls realize function of NIC device (e.g. <code class="docutils literal notranslate"><span class="pre">pci_e1000_realize()</span></code>)</p></li>
+<li><p>IDE: <code class="docutils literal notranslate"><span class="pre">pci_piix3_ide_init()</span></code>, init disk …</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="device-init">
+<h2>Device Init<a class="headerlink" href="#device-init" title="Permalink to this headline">¶</a></h2>
+<p>all QEMU devices is initialized by <code class="docutils literal notranslate"><span class="pre">realize()</span></code> member function, which is triggered by setter of <code class="docutils literal notranslate"><span class="pre">realized</span></code> property.</p>
+<ul>
+<li><p>example source code (i440FX init function initialize NIC):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// pc_init1() =&gt; pc_nic_init() =&gt; pci_e1000_realize()
+
+pc_nic_init() =&gt; pci_nic_init_nofail() =&gt; qdev_init_nofail()
+=&gt; object_property_set_bool(OBJECT(dev), true, &quot;realized&quot;, &amp;err); // set ``realized`` property to true.
+=&gt; pci_e1000_realize(); // e1000 NIC&#39;s realize function.
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="section" id="id1">
+<h3>options<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>NIC common options</p>
+<ul>
+<li><p>e1000: <code class="docutils literal notranslate"><span class="pre">pci_e1000_realize()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/net/e1000.c</span></code></p></li>
+<li><p>ne2k: <code class="docutils literal notranslate"><span class="pre">pci_ne2000_realize()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/net/ne2000.c</span></code></p></li>
+<li><p>rtl8139: <code class="docutils literal notranslate"><span class="pre">pci_rtl8139_realize()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/net/rtl8139.c</span></code></p></li>
+<li><p>virtio: <code class="docutils literal notranslate"><span class="pre">virtio_net_device_realize()</span></code> at <code class="docutils literal notranslate"><span class="pre">hw/net/virtio-net.c</span></code></p></li>
+<li><p>find more options</p>
+<ul>
+<li><p><a class="reference external" href="https://en.wikibooks.org/wiki/QEMU/Devices/Network">QEMU Wiki</a></p></li>
+<li><p>QEMU help:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ qemu-system-x86_64 -device help
+
+Network devices:
+name &quot;e1000&quot;, bus PCI, alias &quot;e1000-82540em&quot;, desc &quot;Intel Gigabit Ethernet&quot;
+name &quot;e1000-82544gc&quot;, bus PCI, desc &quot;Intel Gigabit Ethernet&quot;
+name &quot;ne2k_isa&quot;, bus ISA
+name &quot;ne2k_pci&quot;, bus PCI
+name &quot;pcnet&quot;, bus PCI
+name &quot;rtl8139&quot;, bus PCI
+...
+</pre></div>
+</div>
+</li>
+<li><p>searching source code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ grep -Rn hw/net/ -e &quot;realize&quot;
+
+hw/net/e1000.c:1587:static void pci_e1000_realize(PCIDevice *pci_dev, Error **errp)
+hw/net/ne2000.c:720:static void pci_ne2000_realize(PCIDevice *pci_dev, Error **errp)
+hw/net/ne2000-isa.c:62:static void isa_ne2000_realizefn(DeviceState *dev, Error **errp)
+hw/net/pcnet-pci.c:281:static void pci_pcnet_realize(PCIDevice *pci_dev, Error **errp)
+...
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="code-detail-and-note">
+<h2>Code detail and Note<a class="headerlink" href="#code-detail-and-note" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>QEMU implements OOP in C, QEMU name it’s OO model QOM(QEMU Object Model).</p>
+<ul class="simple">
+<li><p>each classes has a <code class="docutils literal notranslate"><span class="pre">TypeInfo</span></code> struct, which define some metadata like class name and parent classes.</p></li>
+<li><p>more about QOM: <a class="reference internal" href="QOM1.html"><span class="doc">QEMU Object Model</span></a></p></li>
+</ul>
+</li>
+<li><p>QEMU devices are implemented by QDev. QDev is reimplemented on the QOM currently.</p>
+<ul class="simple">
+<li><p>QDev is a class, and it is a base class of all QEMU devices.</p></li>
+<li><p>motherboard, cpu, vga, nic inherit QDev.</p></li>
+<li><p>all QDev device is initialized by <code class="docutils literal notranslate"><span class="pre">realize()</span></code> member function.
+It is triggered by setter of <code class="docutils literal notranslate"><span class="pre">realized</span></code> property. <code class="docutils literal notranslate"><span class="pre">object_property_set_bool(OBJECT(dev),</span> <span class="pre">true,</span> <span class="pre">&quot;realized&quot;,</span> <span class="pre">&amp;err);</span></code></p>
+<ul>
+<li><p>detail: <a class="reference external" href="http://nairobi-embedded.org/035_qom_and_device_creation.html#object-constructor-callback-mechanism">http://nairobi-embedded.org/035_qom_and_device_creation.html#object-constructor-callback-mechanism</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>why <code class="docutils literal notranslate"><span class="pre">machine_class-&gt;init()</span></code> calls <code class="docutils literal notranslate"><span class="pre">pc_init1()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// in QEMU v2.7
+
+// expand MACRO DEFINE_I440FX_MACHINE, which define motherboard class &quot;pc-i440fx-2.7&quot; (QEMU class by QEMU Object Model)
+
+DEFINE_I440FX_MACHINE(v2_7, &quot;pc-i440fx-2.7&quot;, NULL, pc_i440fx_2_7_machine_options);
+
+// DEFINE_PC_MACHINE(v2_7, &quot;pc-i440fx-2.7&quot;, pc_init_v2_7, pc_i440fx_2_7_machine_options);
+
+type_init(pc_machine_init_v2_7)
+static void pc_machine_init_v2_7(void)
+{
+    type_register(&amp;pc_machine_type_v2_7);
+}
+static const TypeInfo pc_machine_type_v2_7 = {
+    .name = &quot;pc-i440fx-2.7&quot;,
+    .parent = &quot;generic-pc-machine&quot;,
+    .class_init = pc_machine_v2_7_class_init,
+}
+pc_machine_v2_7_class_init(ObjectClass *oc, void *data){
+    MachineClass *mc = MACHINE_CLASS(oc);
+    pc_i440fx_2_7_machine_options(mc);
+    mc-&gt;name = &quot;pc-i440fx-2.7&quot;
+    mc-&gt;init = pc_init_v2_7;  // mc-&gt;init() is pc_init_v2_7(), which calls pc_init1()
+}
+pc_init_v2_7(MachineState *machine){
+  ... // call compat
+
+  pc_init1()
+}
+</pre></div>
+</div>
+</li>
+<li><p>QEMU has GLib dependecies. it uses GLib data type, data structures, and event loop.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="qemu_glib.html"><span class="doc">QEMU GLib dependencies</span></a></p></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="reference">
+<h2>reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://wiki.qemu.org/Features/Q35">QEMU wiki - Features/Q35</a></p></li>
+<li><p><a class="reference external" href="http://wiki.qemu.org/Documentation/Platforms/PC">QEMU wiki - Documentation/Platforms/PC</a>,
+<a class="reference external" href="http://wiki.qemu.org/Documentation/Platforms/ARM#Supported_in_qemu-system-arm">QEMU wiki - Documentation/Platforms/ARM</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Intel_440FX">wiki - Intel 440FX</a>,
+<a class="reference external" href="https://en.wikipedia.org/wiki/PCI_IDE_ISA_Xcelerator#PIIX3">wiki - PIIX</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">qemu-system-x86_64</span> <span class="pre">-M</span> <span class="pre">help</span></code>, <code class="docutils literal notranslate"><span class="pre">qemu-system-arm</span> <span class="pre">-M</span> <span class="pre">help</span></code></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">QEMU system init</a><ul>
+<li><a class="reference internal" href="#basic">Basic</a></li>
+<li><a class="reference internal" href="#machine-init">Machine Init</a><ul>
+<li><a class="reference internal" href="#options">options</a></li>
+<li><a class="reference internal" href="#internal">internal</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#device-init">Device Init</a><ul>
+<li><a class="reference internal" href="#id1">options</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#code-detail-and-note">Code detail and Note</a></li>
+<li><a class="reference internal" href="#reference">reference</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_init.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,334 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>VFIO details &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Platform Installations" href="../platform.html" />
+    <link rel="prev" title="VFIO implementation" href="vfio_core.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vfio-details">
+<h1>VFIO details<a class="headerlink" href="#vfio-details" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://elixir.free-electrons.com/linux/v4.13/source/Documentation/vfio.txt#L118">example in vfio-pci</a></p>
+<ul class="simple">
+<li><p>prepare</p>
+<ul>
+<li><p>unlink device to pci driver in sysfs</p></li>
+<li><p>link device to vfio driver in sysfs (and bind to vfio group)</p></li>
+<li><p>provide the user with access to the vfio group if unprivileged operation is desired</p></li>
+</ul>
+</li>
+<li><p>user access vfio</p>
+<ul>
+<li><p>open vfio container(<code class="docutils literal notranslate"><span class="pre">/dev/vfio/vfio</span></code>) and vfio group(e.g. <code class="docutils literal notranslate"><span class="pre">/dev/vfio/26</span></code>)</p></li>
+<li><p>add group to container: <code class="docutils literal notranslate"><span class="pre">ioctl(group,</span> <span class="pre">VFIO_GROUP_SET_CONTAINER,</span> <span class="pre">&amp;container);</span></code></p></li>
+<li><p>set IOMMU model of the container: <code class="docutils literal notranslate"><span class="pre">ioctl(container,</span> <span class="pre">VFIO_SET_IOMMU,</span> <span class="pre">VFIO_TYPE1_IOMMU);</span></code></p></li>
+<li><p>allocate(<code class="docutils literal notranslate"><span class="pre">mmap()</span></code>) some space and setup a DMA mapping: <code class="docutils literal notranslate"><span class="pre">ioctl(container,</span> <span class="pre">VFIO_IOMMU_MAP_DMA,</span> <span class="pre">&amp;dma_map);</span></code></p></li>
+<li><p>get device from vfio_group: <code class="docutils literal notranslate"><span class="pre">device</span> <span class="pre">=</span> <span class="pre">ioctl(group,</span> <span class="pre">VFIO_GROUP_GET_DEVICE_FD,</span> <span class="pre">&quot;0000:06:0d.0&quot;);</span></code></p></li>
+<li><p>get device information for userspace driver?</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_info</span></code>: <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_INFO</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">region_info</span></code>: <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_REGION_INFO</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">irq_info</span></code>: <code class="docutils literal notranslate"><span class="pre">VFIO_DEVICE_GET_IRQ_INFO</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>user access vfio2</p>
+<ul>
+<li><p>vfio container, group, device are all fd.</p></li>
+<li><p>dma_map: <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">vfio_iommu_type1_dma_map</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_device_info</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_region_info</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_irq_info</span></code></p></li>
+</ul>
+</li>
+<li><p>VFIO User API: <code class="docutils literal notranslate"><span class="pre">include/linux/vfio.h</span></code></p></li>
+<li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/v4.13/source/Documentation/vfio.txt#L247">VFIO bus driver API</a></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_add_group_dev()</span></code>: vfio core begin tracking the specified iommu_group, register the specified dev by VFIO bus driver.</p></li>
+</ul>
+</li>
+</ul>
+<div class="section" id="prepare-for-vfio-platform">
+<h3>prepare for vfio-platform<a class="headerlink" href="#prepare-for-vfio-platform" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>echo &quot;vfio-platform&quot; &gt; /sys/bus/$bus/devices/$device/driver_override
+echo $device &gt; /sys/bus/$bus/devices/$device/driver/unbind
+echo $device &gt; /sys/bus/$bus/drivers_probe
+
+1. set &quot;vfio-platform&quot; to device/driver_override
+2. set device_name to driver/unbind
+3. set device_name to bus/drivers_probe
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">device/driver_override</span></code> ?</p>
+<blockquote>
+<div><p>規定只有跟 <code class="docutils literal notranslate"><span class="pre">driver_override</span></code> 的 value 同名的 driver 才能 binding 到 device.
+當 binding 的方式為 <code class="docutils literal notranslate"><span class="pre">bus/drivers_probe</span></code> 時適用. 其他情況不確定.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>DEVICE_ATTR_RW(driver_override);
+// =&gt; sysfs device_attribute
+//    setter, getter = driver_override_store, driver_override_show
+
+// driver_override_store() set parameter to [platform_device] pdev.driver_override
+
+// platform_match() use pdev.driver_override
+// of, acpi, id table match?
+</pre></div>
+</div>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">driver/unbind</span></code></p>
+<blockquote>
+<div><p>把 driver 跟現在 driver binding 的 device 進行 unbind.</p>
+<p><code class="docutils literal notranslate"><span class="pre">bus_find_device_by_name(driver-&gt;bus,</span> <span class="pre">buf)</span></code> + <code class="docutils literal notranslate"><span class="pre">device_release_driver(dev)</span></code></p>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">bus/drivers_probe</span></code></p>
+<blockquote>
+<div><p>drivers_probe 會去掃描 bus 下的所有 driver.
+如果這些 driver 跟 device 有 match 的話(<code class="docutils literal notranslate"><span class="pre">platform_match()</span></code>), 就讓 driver 跟 device 進行 binding(probe).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BUS_ATTR</span><span class="p">(</span><span class="n">drivers_probe</span><span class="p">,</span> <span class="n">S_IWUSR</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="n">store_drivers_probe</span><span class="p">);</span>
+
+<span class="n">store_drivers_probe</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">bus_rescan_devices_helper</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">device_attach</span><span class="p">()</span>
+
+<span class="o">//</span> <span class="n">device_attach</span><span class="p">()</span> <span class="n">walks</span> <span class="n">through</span> <span class="n">the</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">driver</span> <span class="ow">in</span> <span class="n">bus</span><span class="o">.</span>
+<span class="o">//</span> <span class="n">calls</span> <span class="n">driver_probe_device</span><span class="p">()</span> <span class="k">for</span> <span class="n">each</span> <span class="n">pair</span> <span class="k">if</span> <span class="n">driver_match_device</span><span class="p">()</span>
+   <span class="o">//</span> <span class="k">for</span> <span class="n">each</span> <span class="n">driver</span> <span class="ow">in</span> <span class="n">bus</span><span class="p">:</span> <span class="n">__device_attach_driver</span><span class="p">()</span>
+   <span class="n">__device_attach_driver</span><span class="p">()</span>
+       <span class="k">if</span> <span class="n">driver_match_device</span><span class="p">()</span> <span class="o">//</span> <span class="n">use</span> <span class="n">pdev</span><span class="o">.</span><span class="n">driver_override</span><span class="o">.</span>
+           <span class="n">driver_probe_device</span><span class="p">()</span>
+
+<span class="n">driver_match_device</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">driver</span><span class="o">-&gt;</span><span class="n">bus</span><span class="o">-&gt;</span><span class="n">match</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="n">platform_match</span><span class="p">()</span> <span class="k">for</span> <span class="n">platform_device</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>background API:</p>
+<ol class="arabic">
+<li><p>device, driver, and bus use DEVICE_ATTR, DRIVER_ATTR, BUS_ATTR to declare sysfs entry</p>
+<p>1.a. store and show operations are like setter and getter.</p>
+</li>
+</ol>
+</div>
+<div class="section" id="id1">
+<h3>一些整理?<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_device_fops</span></code> 裏面的 <code class="docutils literal notranslate"><span class="pre">region_info</span></code>, <code class="docutils literal notranslate"><span class="pre">irq_info</span></code> 很像 Linux Driver 使用硬體的 API: <code class="docutils literal notranslate"><span class="pre">request_memory_region()</span></code>, <code class="docutils literal notranslate"><span class="pre">request_irq()</span></code>.</p></li>
+<li><p>set vfio_group to vfio_container (ioctl vfio_group) =&gt; the remaining ioctl becomes available</p>
+<ul>
+<li><p>VFIO IOMMU access</p></li>
+<li><p>get device fd in vfio_group</p></li>
+</ul>
+</li>
+<li><p>vfio device API</p>
+<ul>
+<li><p>describe device</p></li>
+<li><p>IO region</p></li>
+<li><p>read/write/mmap offset</p></li>
+<li><p>mechanism to register interrupt notification</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="kernel">
+<h2>kernel 內部實作<a class="headerlink" href="#kernel" title="Permalink to this headline">¶</a></h2>
+<p>VFIO 的介面有三種 fd: container, group, and device.
+固對應的 Linux Kernel 也有實作三組 fops 介面: <code class="docutils literal notranslate"><span class="pre">vfio_fops</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_group_fops</span></code>, <code class="docutils literal notranslate"><span class="pre">vfio_device_fops</span></code>.</p>
+<p>kernel 內部元件跟介面的關聯, 可以參考別人整理的一張圖.</p>
+<img alt="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/resource/BLOGS_UPLOADED_IMAGES/vfio_fig3.png" src="https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/resource/BLOGS_UPLOADED_IMAGES/vfio_fig3.png" />
+<p>VFIO 內部由三個部份所組成: VFIO container (core?) + VFIO bus driver + VFIO IOMMU driver.
+MMIO region map 疑似在 VFIO bus driver 完成的</p>
+<div class="section" id="details">
+<h3>details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>vfio_fops:</p>
+<ul>
+<li><p>open, release, read, write</p></li>
+<li><p>read/write: iommu_driver-&gt;ops-&gt;read/write</p></li>
+<li><p>ioctl:</p>
+<ul>
+<li><p>get_api_version, check_extension</p></li>
+<li><p>set_iommu</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>vfio_group_fops:</p>
+<ul>
+<li><p>open, release, ioctl</p></li>
+<li><p>ioctl: get_status, set/unset_container, get_device_fd</p></li>
+</ul>
+</li>
+<li><p>vfio_device_fops</p>
+<ul>
+<li><p>abstraction of device-&gt;ops</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="detail">
+<h2>介面 detail<a class="headerlink" href="#detail" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>fops</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_fops</span></code> 是基於 misc_device: <code class="docutils literal notranslate"><span class="pre">misc_register(&amp;vfio_dev);</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_group_fops</span></code> 是基於 char device: <code class="docutils literal notranslate"><span class="pre">cdev_init(&amp;vfio.group_cdev,</span> <span class="pre">&amp;vfio_group_fops);</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_device_fops</span></code> 是基於 anonymous fd, 當 process 呼叫 <code class="docutils literal notranslate"><span class="pre">vfio_group_get_device_fd()</span></code> API 時會動態產生該介面的 fd 給 process.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_device_fops</span></code> 的 functions, 會去呼叫參數 vfio_device 裏面的 op structure.</p>
+<ul>
+<li><p>比如說 <code class="docutils literal notranslate"><span class="pre">vfio_device_read()</span></code> 會呼叫 <code class="docutils literal notranslate"><span class="pre">vfio_device-&gt;ops-&gt;read()</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_fops</span></code> 的 ioctl() 除了三個 option 以外, 都會 redirect 到 <code class="docutils literal notranslate"><span class="pre">vfio_iommu_driver.ioctl()</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h2>內部元件 detail<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">vfio_group_set_container(struct</span> <span class="pre">vfio_group</span> <span class="pre">*group,</span> <span class="pre">int</span> <span class="pre">container_fd)</span></code></p>
+<ul>
+<li><p>[iommu_driver] driver-&gt;ops-&gt;attach_group(container-&gt;iommu_data, group-&gt;iommu_group);</p></li>
+</ul>
+</li>
+<li><p>vfio_iommu_driver 實作了 container 的 ioctl options VFIO_IOMMU_MAP_DMA</p>
+<ul>
+<li><p>container fops ioctl() VFIO_IOMMU_MAP_DMA 會 redirect 到 <code class="docutils literal notranslate"><span class="pre">vfio_iommu_driver.ioctl()</span></code></p></li>
+</ul>
+</li>
+<li><p>vfio_pci (vfio bus driver) 如何跟 vfio interface connect?</p>
+<ul>
+<li><p>vfio_pci 會 implement 一個 pci driver 並註冊: <code class="docutils literal notranslate"><span class="pre">pci_register_driver()</span></code></p></li>
+<li><p>vfio_pci 註冊後, 會創造對應的 <code class="docutils literal notranslate"><span class="pre">vfio_device</span></code> 跟 <code class="docutils literal notranslate"><span class="pre">vfio_group</span></code>, 並且用一個 idr 去 index 該 <code class="docutils literal notranslate"><span class="pre">vfio_group</span></code> pointer.</p></li>
+<li><p>vfio_group fops open() 時, 會透過 idr 找到 vfio_pci 產生的 <code class="docutils literal notranslate"><span class="pre">vfio_group</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="other-about-functionality">
+<h2>other about functionality<a class="headerlink" href="#other-about-functionality" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>將 DMA 暴露到 userspace</p></li>
+<li><p>將 interrupt 暴露到 userspace</p>
+<ul>
+<li><p>userspace 使用 eventfd</p></li>
+<li><p>透過 VFIO_DEVICE_GET_REGION_INFO 得到 interrupt 訊息</p></li>
+<li><p>透過 <code class="docutils literal notranslate"><span class="pre">eventfd()</span></code> 產生一個 eventfd, 並用 VFIO_DEVICE_SET_IRQ 把這個 eventfd 跟 interrupt 相連起來.</p></li>
+<li><p>可以 <code class="docutils literal notranslate"><span class="pre">select/poll/epoll()</span></code> 該 eventfd</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">VFIO details</a><ul>
+<li><a class="reference internal" href="#example-usage">Example Usage</a><ul>
+<li><a class="reference internal" href="#prepare-for-vfio-platform">prepare for vfio-platform</a></li>
+<li><a class="reference internal" href="#id1">一些整理?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#kernel">kernel 內部實作</a><ul>
+<li><a class="reference internal" href="#details">details</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#detail">介面 detail</a></li>
+<li><a class="reference internal" href="#id2">內部元件 detail</a></li>
+<li><a class="reference internal" href="#other-about-functionality">other about functionality</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../vfio.html">VFIO</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="resource.html">VFIO resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARM_implementation.html">VFIO ARM resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core.html">VFIO implementation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/vfio/vfio_core2.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

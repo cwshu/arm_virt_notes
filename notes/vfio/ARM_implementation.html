@@ -1,0 +1,247 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>VFIO ARM resource &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="VFIO implementation" href="vfio_core.html" />
+    <link rel="prev" title="VFIO resource" href="resource.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="vfio-arm-resource">
+<h1>VFIO ARM resource<a class="headerlink" href="#vfio-arm-resource" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.fp7-save.eu/papers/EUC2014B.pdf">[2014] VOS - Platform Device Assignment to KVM-on-ARM Virtual Machines via VFIO</a></p></li>
+<li><p><a class="reference external" href="http://www.linux-kvm.org/images/a/a8/01x04-ARMdevice.pdf">[2014] KVM Platform Device Passthrough</a></p></li>
+<li><p><a class="reference external" href="https://www.linux-kvm.org/images/0/09/Kvm-forum-2013-vfio_platform.pdf">[2013] (freescale) VFIO for Platform Devices</a></p></li>
+<li><p><a class="reference external" href="https://wiki.linaro.org/LEG/Engineering/Virtualization/VFIOPlatformHowToIntegrateNewDevice">Linaro 找到的 add new device to VFIO PLATFORM 教學</a></p></li>
+</ul>
+<div class="section" id="terminology">
+<h2>Terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">VFIO_PLATFORM</span></code>: VFIO support of device under the platform bus.</p>
+<blockquote>
+<div><p>Platform bus means platform dependent bus.
+In Linux, platform devices are registered at <code class="docutils literal notranslate"><span class="pre">/sys/bus/platform</span></code>.</p>
+<p>Compared to it, there are some common platform independent buses like pci, usb, and amba.
+They are also at <code class="docutils literal notranslate"><span class="pre">/sys/bus/</span></code> directory.</p>
+<p>see <code class="docutils literal notranslate"><span class="pre">sysfs</span></code> for more information.</p>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="vfio-platform-for-dma-controller-pl330">
+<h2>VFIO_PLATFORM for DMA Controller (PL330)<a class="headerlink" href="#vfio-platform-for-dma-controller-pl330" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.virtualopensystems.com/en/solutions/guides/vfio-on-arm/">Testing VFIO_PLATFORM with the PL330 DMA Controller</a></p>
+<ul>
+<li><p>VOS 寫了 ARM platform 的 VFIO support, 支援 PL330 DMA Controller 跟 IOMMU.</p></li>
+<li><p>測試環境是 emulator (ARM Foundation Model)</p></li>
+<li><p>patch - <a class="reference external" href="https://lwn.net/Articles/584940/">VFIO support for platform devices</a></p>
+<ul>
+<li><p>find <code class="docutils literal notranslate"><span class="pre">VFIO_PLATFORM</span></code> code in mainline linux (linux 4.7 is ok): <code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-R</span> <span class="pre">drivers/vfio</span> <span class="pre">-e</span> <span class="pre">'Antonios</span> <span class="pre">Motakis'</span></code></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://github.com/virtualopensystems/vfio-host-test">VFIO_PLATFORM userspace test driver</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="http://www.fp7-save.eu/papers/EUC2014B.pdf">VFIO_PLATFORM paper</a></p></li>
+</ul>
+</div>
+<div class="section" id="vfio-platform-for-calxeda-xgmac-ethernet-driver">
+<h2>VFIO_PLATFORM for Calxeda xgmac ethernet driver<a class="headerlink" href="#vfio-platform-for-calxeda-xgmac-ethernet-driver" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="http://www.linux-kvm.org/images/a/a8/01x04-ARMdevice.pdf">[2014] KVM Platform Device Passthrough</a></p>
+<ul>
+<li><p>Calxeda xgmac ethernet driver</p></li>
+<li><p>KVM VFIO irqfd</p></li>
+</ul>
+</li>
+<li><p>xgmac device pass through source code 疑似有進 QEMU 跟 Linux kernel mainline.</p>
+<ul>
+<li><p>原 driver source code: <code class="docutils literal notranslate"><span class="pre">drivers/net/ethernet/calxeda/xgmac.c</span></code></p></li>
+<li><p>QEMU patch?:</p>
+<ul>
+<li><ol class="arabic simple">
+<li><p>[PATCH v15 00/10] KVM platform device passthrough: <a class="reference external" href="https://www.spinics.net/lists/kvm-arm/thrd15.html#14541">https://www.spinics.net/lists/kvm-arm/thrd15.html#14541</a></p></li>
+</ol>
+</li>
+<li><ol class="arabic simple" start="2">
+<li><p><a class="reference external" href="https://patches.linaro.org/patch/43179/">https://patches.linaro.org/patch/43179/</a></p></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>[Question] Where is linux kernel patch? is it exist?</p></li>
+<li><p>vfio platform xgmac reset module (KVM) <a class="reference external" href="https://patchwork.kernel.org/patch/6358861/">https://patchwork.kernel.org/patch/6358861/</a></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">drivers/vfio/platform/reset/vfio_platform_calxedaxgmac.c</span></code></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="some-kernel-patches">
+<h2>Some kernel patches<a class="headerlink" href="#some-kernel-patches" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b779157dd3db6199b50e7ad64678a1ceedbeebcf">Merge tag ‘vfio-v4.2-rc1’ of git://github.com/awilliam/linux-vfio</a></p>
+<ul>
+<li><p>add reset hooks and Calxeda xgmac reset for vfio-platform (Eric Auger)</p></li>
+<li><p>enable vfio-platform for ARM64 (Eric Auger)</p></li>
+<li><p>tag Baptiste Reynal as vfio-platform sub-maintainer (Alex Williamson)</p></li>
+<li><p>…</p></li>
+</ul>
+</li>
+<li><p>[linux-v4.2] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=53161532394b3b3c7e1ec9c80658edd75446ac77">vfio: platform: add the VFIO PLATFORM module to Kconfig</a></p></li>
+<li><p>[linux-v4.1] <a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=36fe431f2811fa3b5fed15d272c585d5a47977aa">vfio: amba: VFIO support for AMBA devices</a></p></li>
+<li><p><a class="reference external" href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc669743a39e3f61c9ca5e786e959bf478ccd197">Merge tag ‘vfio-v3.19-rc1’ of git://github.com/awilliam/linux-vfio</a></p>
+<ul>
+<li><p>Enable iommu-type1 for ARM SMMU (Will Deacon)</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="kvm-pcie-msi-passthrough-on-arm-arm64">
+<h2>KVM PCIe/MSI Passthrough on ARM/ARM64<a class="headerlink" href="#kvm-pcie-msi-passthrough-on-arm-arm64" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://www.linaro.org/blog/core-dump/kvm-pciemsi-passthrough-armarm64/">Eric Auger, KVM PCIe/MSI Passthrough on ARM/ARM64</a></p>
+<ul class="simple">
+<li><p>ARM-based system require special support for MSI in the context of VFIO passthrough (ARM server, PCI MSI)</p></li>
+<li><p>chapters</p>
+<ul>
+<li><p>ARM MSI Controllers: GICv2m and GICv3 ITS</p></li>
+<li><p>KVM PCI/MSI passthrough, x86/ARM Differences</p>
+<ul>
+<li><p>On x86, MSI write transactions hit special 1MB phyaddr. It’s APIC config space and not DRAM, so it bypass IOMMU. It doesn’t need IOMMU mapping.</p></li>
+<li><p>On ARM, however, MSI write transactions is normal MMIO region. Therefore an IOMMU mapping must exist.</p></li>
+<li><p>The goal: create the needed IOMMU mappings for MSI write transactions. eventually reach hardware MSI frame.</p></li>
+</ul>
+</li>
+<li><p>Assigned device MSI Setup: VFIO Legacy Implementation for x86, and Requested adaptation for ARM</p></li>
+<li><p>Interrupt Safety: guest cannot trigger MSIs that correspond to interrupt IDs of devices belonging to host or other guest.</p></li>
+<li><p>Conclusions</p>
+<ul>
+<li><p>GICv2m MSI controllers will require users to load VFIO with the <code class="docutils literal notranslate"><span class="pre">allow_unsafe_interrupts</span></code> parameter.</p></li>
+<li><p>GICv3 ITS platforms will work with VFIO without any additional parameters.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>patches:
+<a class="reference external" href="https://lkml.org/lkml/2016/2/12/47">Linux kernel</a>,
+<a class="reference external" href="http://lists.gnu.org/archive/html/qemu-arm/2016-01/msg00444.html">QEMU</a></p></li>
+</ul>
+</div>
+<div class="section" id="other-resource">
+<h2>Other Resource<a class="headerlink" href="#other-resource" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Direct Device Assignment for Untrusted Fully-Virtualized Virtual Machines, IBM Research, 2008</p></li>
+<li><p>Introduction on performance analysis and profiling methodologies for KVM on ARM virtualization</p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">VFIO ARM resource</a><ul>
+<li><a class="reference internal" href="#terminology">Terminology</a></li>
+<li><a class="reference internal" href="#vfio-platform-for-dma-controller-pl330">VFIO_PLATFORM for DMA Controller (PL330)</a></li>
+<li><a class="reference internal" href="#vfio-platform-for-calxeda-xgmac-ethernet-driver">VFIO_PLATFORM for Calxeda xgmac ethernet driver</a></li>
+<li><a class="reference internal" href="#some-kernel-patches">Some kernel patches</a></li>
+<li><a class="reference internal" href="#kvm-pcie-msi-passthrough-on-arm-arm64">KVM PCIe/MSI Passthrough on ARM/ARM64</a></li>
+<li><a class="reference internal" href="#other-resource">Other Resource</a></li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../vfio.html">VFIO</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="resource.html">VFIO resource</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">VFIO ARM resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core.html">VFIO implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vfio_core2.html">VFIO details</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/vfio/ARM_implementation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

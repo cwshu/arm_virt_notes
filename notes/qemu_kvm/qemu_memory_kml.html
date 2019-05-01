@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>KVMMemoryListener &#8212; ARM SoC Device Assignment Notes  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="QEMU global var system_memory" href="system_memory.html" />
+    <link rel="prev" title="QEMU Memory Management" href="qemu_memory.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="kvmmemorylistener">
+<h1>KVMMemoryListener<a class="headerlink" href="#kvmmemorylistener" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="interface">
+<h2>Interface<a class="headerlink" href="#interface" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>MemoryRegionSection: 代表一段 memory address range; memory 特性跟指向的 MemoryRegion 一致</p>
+<ul class="simple">
+<li><p>memory address (<code class="docutils literal notranslate"><span class="pre">MemoryRegionSection*</span> <span class="pre">section</span></code>)</p>
+<ul>
+<li><p>gpa start: (hwaddr) section-&gt;offset_within_address_space</p></li>
+<li><p>hva start:  (void*) memory_region_get_ram_ptr(section-&gt;mr) + section-&gt;offset_within_region</p></li>
+<li><p>size: section-&gt;size</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>MemoryListener API:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MemoryListener</span><span class="o">-&gt;</span><span class="n">region_add</span><span class="p">(</span><span class="n">MemoryListener</span> <span class="o">*</span><span class="n">listener</span><span class="p">,</span> <span class="n">MemoryRegionSection</span> <span class="o">*</span><span class="n">section</span><span class="p">)</span>
+<span class="n">MemoryListener</span><span class="o">-&gt;</span><span class="n">region_del</span><span class="p">(</span><span class="n">MemoryListener</span> <span class="o">*</span><span class="n">listener</span><span class="p">,</span> <span class="n">MemoryRegionSection</span> <span class="o">*</span><span class="n">section</span><span class="p">)</span>
+
+<span class="n">把</span> <span class="n">section</span> <span class="n">加入到</span> <span class="n">guest</span> <span class="n">memory</span> <span class="o">/</span> <span class="n">從</span> <span class="n">guest</span> <span class="n">memory</span> <span class="n">刪除</span><span class="o">.</span>
+<span class="n">以</span> <span class="n">KVMMemoryListener</span> <span class="n">為例</span><span class="p">,</span> <span class="n">就是透過</span> <span class="n">KVM</span> <span class="n">API</span> <span class="n">對</span> <span class="n">guest</span> <span class="n">OS</span> <span class="n">加入</span><span class="o">/</span><span class="n">刪除</span> <span class="n">memory</span> <span class="n">page</span><span class="o">.</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>KVMMemoryListener 實作 <code class="docutils literal notranslate"><span class="pre">kvm_region_add()</span> <span class="pre">/</span> <span class="pre">kvm_region_del()</span></code></p></li>
+<li><p>KVM API: <code class="docutils literal notranslate"><span class="pre">kvm_vm_ioctl(KVM_SET_USER_MEMORY_REGION);</span></code></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">kvm_region_add()</span> <span class="pre">/</span> <span class="pre">kvm_region_del()</span></code> 都會轉成 <code class="docutils literal notranslate"><span class="pre">kvm_set_phys_mem()</span></code>, 用 bool 參數 add 來分辨.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kvm_set_phys_mem()</span></code></p>
+<ul>
+<li><p>功能: 把 MemoryRegionSection 這段 hwaddr range 加入/刪除到 KVM 的記憶體管理.</p></li>
+<li><p>前置行為</p>
+<ul class="simple">
+<li><p>把 address range 進行 page alignment, 只留中間有 page-aligned 的 memory (小於 page size 則直接消失)</p></li>
+<li><p>如果是非 ram 的 MemoryRegion, 則大部份 MR 會直接取消 mapping 或是從 region_add 轉成 region_del. 具體 condition 請見 source code.</p></li>
+</ul>
+</li>
+<li><p>實作方式:</p>
+<ul class="simple">
+<li><p>先當成 region_del, 把現有的 KVMSlot 之中, 跟 MemoryRegionSection 有交集的全部取出, 並且砍掉這些交集.</p></li>
+<li><p>如果是 region_add 的話, 再把該 MemoryRegionSection 轉成 KVMSlot 之後, 加入 KVM 的記憶體管理.</p></li>
+<li><p>例外: 如果是 region_add, 並且 Section 的 address range 包含於取出的 KVMSlot, 就只更新 KVMSlot 的 flag. 並且函式直接 return</p></li>
+<li><p>砍掉交集的演算法: <code class="docutils literal notranslate"><span class="pre">KVMSlot</span> <span class="pre">old</span> <span class="pre">-</span> <span class="pre">MemoryRegionSection</span> <span class="pre">new</span></code></p>
+<ul>
+<li><p>移除 old 的 KVMSlot</p></li>
+<li><p>新增兩個 KVMSlot prefix, suffix = ([old.start, new.start], [new.end, old.end])</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>API</p>
+<ul class="simple">
+<li><p>取出交集的 KVMSlot: <code class="docutils literal notranslate"><span class="pre">kvm_lookup_overlapping_slot()</span></code></p></li>
+<li><p>加入 KVM 的記憶體管理 / 砍掉交集: <code class="docutils literal notranslate"><span class="pre">kvm_set_user_memory_region()</span></code></p></li>
+<li><p>更新 KVMSlot 的 flag: <code class="docutils literal notranslate"><span class="pre">kvm_slot_update_flags()</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">kvm_set_user_memory_region()</span></code></p></li>
+</ul>
+</li>
+<li><p>API detail:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">static</span> <span class="n">KVMSlot</span> <span class="o">*</span><span class="n">kvm_lookup_overlapping_slot</span><span class="p">:</span> <span class="n">找出跟</span> <span class="p">(</span><span class="n">start_addr</span><span class="p">,</span> <span class="n">end_addr</span><span class="p">)</span> <span class="n">overlap</span> <span class="n">且</span> <span class="n">start_addr</span> <span class="n">最小的</span> <span class="n">KVMSlot</span><span class="p">,</span> <span class="n">KVMSlot</span> <span class="kn">from</span> <span class="nn">kml</span>
+    <span class="o">-</span> <span class="n">overlap</span> <span class="n">algor</span><span class="p">:</span> <span class="n">a</span><span class="o">-&gt;</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">-&gt;</span><span class="n">start</span> <span class="o">&amp;&amp;</span> <span class="n">a</span><span class="o">-&gt;</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">-&gt;</span><span class="n">end</span>
+<span class="n">kvm_slot_update_flags</span><span class="p">(</span><span class="n">kml</span><span class="p">,</span> <span class="n">mem</span><span class="p">,</span> <span class="n">mr</span><span class="p">):</span> <span class="n">從</span> <span class="n">mr</span><span class="p">(</span><span class="n">MemoryRegion</span><span class="p">)</span> <span class="n">抽出</span> <span class="n">kvm_mem_slot</span> <span class="n">的</span> <span class="n">flag</span><span class="p">,</span> <span class="n">如果需要更新則透過</span> <span class="n">kvm_set_user_memory_region</span><span class="p">()</span> <span class="n">更新</span><span class="o">.</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+<li><p>KVM Memory API wrapper: <code class="docutils literal notranslate"><span class="pre">kvm_set_user_memory_region(KVMMemoryListener</span> <span class="pre">*kml,</span> <span class="pre">KVMSlot</span> <span class="pre">*slot)</span></code></p>
+<ul>
+<li><p>call <code class="docutils literal notranslate"><span class="pre">kvm_vm_ioctl(KVM_SET_USER_MEMORY_REGION);</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">KVMSlot</span></code> to <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">kvm_userspace_memory_region</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">int</span>        <span class="n">slot</span> <span class="o">|</span> <span class="p">(</span><span class="n">kml</span><span class="o">-&gt;</span><span class="n">as_id</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="n">slot</span>
+<span class="n">hwaddr</span>     <span class="n">start_addr</span>                <span class="o">=&gt;</span> <span class="n">guest_phys_addr</span> <span class="p">(</span><span class="n">gpa</span><span class="p">)</span>
+<span class="n">void</span><span class="o">*</span>      <span class="n">ram</span>                       <span class="o">=&gt;</span> <span class="n">userspace_addr</span>  <span class="p">(</span><span class="n">uaddr</span><span class="p">)</span>
+<span class="n">ram_addr_t</span> <span class="n">memory_size</span>               <span class="o">=&gt;</span> <span class="n">memory_size</span>
+<span class="nb">int</span>        <span class="n">flags</span>                     <span class="o">=&gt;</span> <span class="n">flags</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">KVMSlot</span></code></p>
+<ul class="simple">
+<li><p>stored in KML: <cite>KVMMemoryListener kml; KVMSlot *mem = &amp;kml-&gt;slots[i];`</cite></p></li>
+<li><p>數目(nr_slots init): <code class="docutils literal notranslate"><span class="pre">s-&gt;nr_slots</span> <span class="pre">=</span> <span class="pre">kvm_check_extension(s,</span> <span class="pre">KVM_CAP_NR_MEMSLOTS);</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>More</p>
+<ul class="simple">
+<li><p>開始有 pointer 是 hva, hwaddr 是 gpa 的感覺了.</p></li>
+<li><p>function path: <code class="docutils literal notranslate"><span class="pre">kvm_region_add()</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">kvm_set_phy_ram()</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">kvm_set_user_memory_region()</span></code></p></li>
+<li><p>data path: <code class="docutils literal notranslate"><span class="pre">MemoryRegionSection</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">KVMSlot</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">kvm_userspace_memory_region</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="kvm-memory-api">
+<h2>KVM memory API<a class="headerlink" href="#kvm-memory-api" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>VM ioctl - KVM_SET_USER_MEMORY_REGION</p>
+<ul>
+<li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/v4.11/source/Documentation/virtual/kvm/api.txt#L930">API doc</a></p></li>
+<li><p>create, modify, and delete guest physical memory slot. it controls guest physical memory.</p>
+<ul>
+<li><p>slot can be moved, or its flag can be modified. it can’t be resized.</p></li>
+<li><p>slots may not overlapped in GPA space.</p></li>
+</ul>
+</li>
+<li><p>mapping the memory page in HVA to GPA (addrs trans: GPA =&gt; HPA)</p></li>
+<li><p>parameter: struct kvm_userspace_memory_region</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">guest_phys_addr</span></code> is GPA and <code class="docutils literal notranslate"><span class="pre">userspace_addr</span></code> is HVA</p></li>
+<li><p>slot: multi address space</p></li>
+<li><p>recommand last 21 bits of gpa &amp; uaddr is identical (large page )</p></li>
+</ul>
+</li>
+<li><p>example</p>
+<ul>
+<li><p><a class="reference external" href="https://senselab.tw/git/u1240976/arm_virt_test_code/blob/master/memory_map_test/qemu_patch/host_map.diff#L32">https://senselab.tw/git/u1240976/arm_virt_test_code/blob/master/memory_map_test/qemu_patch/host_map.diff#L32</a></p>
+<ul>
+<li><p>mapping: GPA = 0x80000000, HVA = <code class="docutils literal notranslate"><span class="pre">mmap()</span></code> return value.</p></li>
+<li><p>fails currently.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="misc">
+<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="kvm-memory">
+<h3>KVM memory<a class="headerlink" href="#kvm-memory" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>mmap VM fd is gpa ??</p></li>
+<li><p>kvm_vm_ioctl_set_memory_region() =&gt; __kvm_set_memory_region()</p>
+<ul>
+<li><p>kvm_memslots, kvm_memory_slot, slot = (as_id, id)</p></li>
+<li><p>[arm] arch_prepare_memory_region() =&gt; unmap_stage2_range(kvm, mem-&gt;guest_phys_addr, mem-&gt;memory_size);</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ARM SoC Device Assignment Notes</a></h1>
+
+
+
+
+
+
+
+
+
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">KVMMemoryListener</a><ul>
+<li><a class="reference internal" href="#interface">Interface</a></li>
+<li><a class="reference internal" href="#contents">Contents</a></li>
+<li><a class="reference internal" href="#kvm-memory-api">KVM memory API</a></li>
+<li><a class="reference internal" href="#misc">Misc</a><ul>
+<li><a class="reference internal" href="#kvm-memory">KVM memory</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../qemu_kvm.html">QEMU/KVM note</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-basic">QEMU Basic</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../qemu_kvm.html#memory">Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#ivshmem">ivshmem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-net">QEMU Net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#qemu-misc">QEMU Misc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../qemu_kvm.html#kvm">KVM</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../device_driver.html">Linux Device Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dma.html">DMA note</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vfio.html">VFIO</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../platform.html">Platform Installations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../perf.html">Perf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc.html">Misc</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, susu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/notes/qemu_kvm/qemu_memory_kml.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
