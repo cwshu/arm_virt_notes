@@ -43,8 +43,7 @@
 </li>
 <li><p>DMA 分為兩個種類</p>
 <ul>
-<li><p>standard DMA (DMA Controller): 有 central 的 DMA Controller, DMA Controller 會提供 control register 來讓 CPU 進行讀寫,
-用於指定 DMA copy 的記憶體位址.</p></li>
+<li><p>standard DMA (DMA Controller): 有 central 的 DMA Controller, DMA Controller 會提供 control register 來讓 CPU 進行讀寫, 用於指定 DMA copy 的記憶體位址.</p></li>
 <li><p>bus mastering: CPU 跟每個 peripherals 都可以被授權來控制 memory bus. 因此 peripheral 能直接成為 bus master, 就能直接對 memory 進行讀寫.</p></li>
 </ul>
 </li>
@@ -56,8 +55,8 @@
 </li>
 <li><p>Bus Mastering Example</p>
 <ul>
-<li><p>PCI bus 就有提供 bus mastering 的技術, 估計目前 x86 PC 大多都是使用 PCI bus mastering 作為 DMA.</p></li>
-<li><p>AMBA bus AHB protocol.</p></li>
+<li><p>PCI bus</p></li>
+<li><p>AMBA AHB bus</p></li>
 </ul>
 </li>
 </ul>
@@ -86,17 +85,17 @@
 <blockquote>
 <div><img alt="../../_images/arm_dma.png" src="../../_images/arm_dma.png" />
 </div></blockquote>
-<ul class="simple">
-<li><p>linux kernel driver</p>
 <ul>
-<li><p>include/linux/amba/bus.h</p></li>
-<li><p>include/linux/amba/pl330.h</p></li>
-<li><p>drivers/dma/pl330.c</p></li>
-<li><p>include/linux/amba/pl080.h</p></li>
-</ul>
+<li><p>linux kernel driver:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">amba</span><span class="o">/</span><span class="n">bus</span><span class="o">.</span><span class="n">h</span>
+<span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">amba</span><span class="o">/</span><span class="n">pl330</span><span class="o">.</span><span class="n">h</span>
+<span class="n">drivers</span><span class="o">/</span><span class="n">dma</span><span class="o">/</span><span class="n">pl330</span><span class="o">.</span><span class="n">c</span>
+<span class="n">include</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">amba</span><span class="o">/</span><span class="n">pl080</span><span class="o">.</span><span class="n">h</span>
+</pre></div>
+</div>
 </li>
 <li><p>reference</p>
-<ul>
+<ul class="simple">
 <li><p><a class="reference external" href="https://www.arm.com/zh/products/system-ip/controllers/other-system-controllers.php">ARM - other system controllers</a></p></li>
 <li><p><a class="reference external" href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.set.primecell/index.html">CoreLink controllers and peripherals</a></p></li>
 <li><p><a class="reference external" href="http://www.virtualopensystems.com/en/solutions/guides/vfio-on-arm">Testing VFIO_PLATFORM with the PL330 DMA Controller</a></p></li>
