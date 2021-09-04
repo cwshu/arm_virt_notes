@@ -5,9 +5,8 @@ VFIO implementation
 - VFIO basic
 - VFIO functionality
 - kernel VFIO APIs
-- QEMU VFIO device (input device(sysfs))
-- functionality
-- portability issue: no-IOMMU and platform
+- QEMU VFIO device (not finish)
+- portability issue: no-IOMMU and platform (not finish)
 
 Introduction
 ------------
@@ -35,7 +34,7 @@ VFIO bus driver 的介面為 ``vfio_device_ops``.
 
 kernel 內部元件跟介面的關聯, 可以參考別人整理的一張圖.
 
-.. image:: https://www.ibm.com/developerworks/community/blogs/5144904d-5d75-45ed-9d2b-cf1754ee936a/resource/BLOGS_UPLOADED_IMAGES/vfio_fig3.png
+.. image:: img/vfio.png
 
 VFIO use stub driver to register HW resources, and pass through them to userspace.
 
@@ -126,11 +125,12 @@ VFIO APIs
    由於抽象化的部份是由純軟體實作, 所以會有相對應的效能損失.
 
    其餘行為的部份, 該 API 的 flag 分成三種 action 跟三種 data.
-   ACTION MASK / UNMASK 就是 mask/unmask interrupt 的功能, 不管 data flag.
-   ACTION TRIGGER 的話就要在往下看 data flag,
-   DATA EVENTFD 是主要功能, 設定 eventfd 及 stub driver 的 interrupt handler.
-   DATA NONE 是刪除 eventfd, 並關閉 stub driver 的 interrupt handler.
-   DATA BOOL 是直接 signal eventfd, 如同 trigger interrupt 的效果.
+
+   - ACTION MASK / UNMASK 就是 mask/unmask interrupt 的功能, 不管 data flag.
+   - ACTION TRIGGER 的話就會根據 data flag 有所不同,
+   - DATA EVENTFD 是主要功能, 設定 eventfd 及 stub driver 的 interrupt handler.
+   - DATA NONE 是刪除 eventfd, 並關閉 stub driver 的 interrupt handler.
+   - DATA BOOL 是直接 signal eventfd, 如同 trigger interrupt 的效果.
 
 4. request = ``VFIO_IOMMU_MAP_DMA``
 
@@ -153,6 +153,7 @@ VFIO APIs
 QEMU VFIO device
 ----------------
 
+(pass)
 
 source code 參考
 ----------------
