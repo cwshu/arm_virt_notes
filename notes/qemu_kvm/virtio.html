@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Virtio &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -30,7 +31,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="virtio">
+  <section id="virtio">
 <h1>Virtio<a class="headerlink" href="#virtio" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
 <li><p>intro</p>
@@ -40,7 +41,7 @@
 </ul>
 </li>
 </ul>
-<div class="section" id="document">
+<section id="document">
 <h2>Document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h2>
 <ul>
 <li><p>initial paper from Rusty Russel: <a class="reference external" href="https://ozlabs.org/~rusty/virtio-spec/virtio-paper.pdf">(Rusty, 2008) virtio: Towards a De-Facto Standard For Virtual I/O Devices</a></p></li>
@@ -57,16 +58,16 @@
 <li><p><a class="reference external" href="https://vmsplice.net/~stefan/virtio-devconf-2014.pdf">(2014, devconf.cz), Stefan Hajnoczi. VIRTIO 1.0 - Paravirtualized I/O for KVM and beyond</a></p></li>
 <li><p>Performance comparsion: <a class="reference external" href="http://www.linux-kvm.org/page/Virtio/Block/Latency">virtio-blk latency</a></p></li>
 </ul>
-<div class="section" id="notes">
+<section id="notes">
 <h3>notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>paper note: <a class="reference internal" href="virtio_paper.html"><span class="doc">virtio-paper</span></a></p></li>
 <li><p>virtqueue initialization (e.g. config)</p></li>
 <li><p>virtqueue 5 ops 簡介</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="virtio-blk">
+</section>
+</section>
+<section id="virtio-blk">
 <h2>virtio-blk<a class="headerlink" href="#virtio-blk" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>documents</p>
@@ -79,8 +80,8 @@
 <li><p>bio based virtio-blk guest driver: remove IO scheduling.</p></li>
 <li><p>vhost blk host driver: remove host fs layer, no qemu userspace.</p></li>
 </ul>
-</div>
-<div class="section" id="misc">
+</section>
+<section id="misc">
 <h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>virtqueue kick: a pio write to a virtio PCI hardware register</p>
@@ -98,8 +99,8 @@
 </ul>
 </li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -148,7 +149,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -162,7 +163,7 @@
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

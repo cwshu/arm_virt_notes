@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>QEMU Network &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,9 +33,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="qemu-network">
+  <section id="qemu-network">
 <h1>QEMU Network<a class="headerlink" href="#qemu-network" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="introduction-architecture">
+<section id="introduction-architecture">
 <h2>introduction(architecture)<a class="headerlink" href="#introduction-architecture" title="Permalink to this headline">¶</a></h2>
 <p>virtual network device 跟 network emulation 的程式碼會各實作出一個 <code class="docutils literal notranslate"><span class="pre">NetClientState</span></code>, 然後兩者互相 peering.
 當兩者要傳出資料給對方時, 都會呼叫 <code class="docutils literal notranslate"><span class="pre">qemu_send_packet*()</span></code> 相關的 API 來完成.</p>
@@ -61,10 +62,10 @@ sending packets 的 control flow (QEMU part):</p>
 <ul class="simple">
 <li><p>關於 <code class="docutils literal notranslate"><span class="pre">qemu_send_packet()</span></code> 如何呼叫 <code class="docutils literal notranslate"><span class="pre">NetClientInfo-&gt;receive()</span></code>, 請參考 <a class="reference internal" href="#qemu-send-packet"><span class="std std-ref">qemu_send_packet() 跟 NetClientInfo</span></a></p></li>
 </ul>
-</div>
-<div class="section" id="qemu-send-packet-netclientinfo">
+</section>
+<section id="qemu-send-packet-netclientinfo">
 <span id="qemu-send-packet"></span><h2>qemu_send_packet() 跟 NetClientInfo<a class="headerlink" href="#qemu-send-packet-netclientinfo" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="basic-struct">
+<section id="basic-struct">
 <h3>basic struct<a class="headerlink" href="#basic-struct" title="Permalink to this headline">¶</a></h3>
 <p>overview:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">struct</span> <span class="n">NetClientState</span>
@@ -104,9 +105,9 @@ sending packets 的 control flow (QEMU part):</p>
         [b.] peer-&gt;info-&gt;receive_raw()
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
           </div>
@@ -162,7 +163,7 @@ sending packets 的 control flow (QEMU part):</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -176,7 +177,7 @@ sending packets 的 control flow (QEMU part):</p>
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

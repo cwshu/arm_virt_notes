@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Ubuntu Server on qemu-system-aarch64/kvm &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,9 +33,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="ubuntu-server-on-qemu-system-aarch64-kvm">
+  <section id="ubuntu-server-on-qemu-system-aarch64-kvm">
 <h1>Ubuntu Server on qemu-system-aarch64/kvm<a class="headerlink" href="#ubuntu-server-on-qemu-system-aarch64-kvm" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="preparation">
+<section id="preparation">
 <h2>Preparation<a class="headerlink" href="#preparation" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
 <li><p>Linaro QEMU_EFI</p>
@@ -57,8 +58,8 @@
 </ul>
 </li>
 </ol>
-</div>
-<div class="section" id="installation">
+</section>
+<section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <ul>
 <li><p>QEMU running command:</p>
@@ -81,7 +82,7 @@
 </li>
 <li><p>Ubuntu installation</p></li>
 </ul>
-<div class="section" id="boot-up-issue-uefi">
+<section id="boot-up-issue-uefi">
 <span id="boot-uefi-issue"></span><h3>boot up issue(UEFI)<a class="headerlink" href="#boot-up-issue-uefi" title="Permalink to this headline">¶</a></h3>
 <p>Booting up is blocking at EFI menu for arm64 rootfs of ubuntu, debian, and fedora.</p>
 <p>2 solutions</p>
@@ -90,9 +91,9 @@
 <li><p>write a EFI script <code class="docutils literal notranslate"><span class="pre">startup.nsh</span></code> to execute EFI bootup script</p></li>
 </ol>
 <p><a class="reference external" href="https://wiki.debian.org/UEFI#Booting_a_UEFI_machine_normally">EFISTUB path</a></p>
-</div>
-</div>
-<div class="section" id="running-and-usage">
+</section>
+</section>
+<section id="running-and-usage">
 <h2>Running and Usage<a class="headerlink" href="#running-and-usage" title="Permalink to this headline">¶</a></h2>
 <ul>
 <li><p>QEMU running command:</p>
@@ -116,8 +117,8 @@
 </div>
 </li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -172,7 +173,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -186,7 +187,7 @@
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

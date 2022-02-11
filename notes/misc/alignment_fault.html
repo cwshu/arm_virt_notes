@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Alignment Fault &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,9 +33,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="alignment-fault">
+  <section id="alignment-fault">
 <h1>Alignment Fault<a class="headerlink" href="#alignment-fault" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="terminology">
+<section id="terminology">
 <h2>terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>aligned memory access &amp; unaligned memory access</p>
@@ -45,8 +46,8 @@
 </li>
 <li><p>Alignment Fault: <a class="reference external" href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/Babcjcbe.html">ARM9 對 Alignment Fault 的定義</a></p></li>
 </ul>
-</div>
-<div class="section" id="arm-cpu">
+</section>
+<section id="arm-cpu">
 <h2>ARM CPU<a class="headerlink" href="#arm-cpu" title="Permalink to this headline">¶</a></h2>
 <p>滿多 RISC 的 CPU 並不完整支援 unaligned memory access, 比如說 ARM9 所有的 memory access instruction 都不支援.</p>
 <p>有一說是 ARMv5 (e.g. ARM9) 跟以前的 ARM CPU 不支援 unaligned memory access, ARMv6 以後 default 支援大部份的 aligned memory access:</p>
@@ -87,8 +88,8 @@ This simplifies porting code to A64.</p>
 </li>
 <li><p><a class="reference external" href="http://www.willdeacon.ukfsn.org/bitbucket/armv8/aci-presentation-02-13.pdf">Porting Linux to a new Architecture - ARMv8 AArch64 Software Bring-up</a> p.23</p></li>
 </ul>
-</div>
-<div class="section" id="compiler-toolchain">
+</section>
+<section id="compiler-toolchain">
 <h2>Compiler/Toolchain<a class="headerlink" href="#compiler-toolchain" title="Permalink to this headline">¶</a></h2>
 <p>我撞到的狀況</p>
 <ul class="simple">
@@ -122,8 +123,8 @@ This simplifies porting code to A64.</p>
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="reference">
+</section>
+<section id="reference">
 <h2>reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference external" href="http://happyseeker.github.io/kernel/2016/02/26/alignment-fault-in-arm64.html">ARM64 环境中的对齐异常 (alignment fault) 问题</a></p>
@@ -138,8 +139,8 @@ This simplifies porting code to A64.</p>
 </ul>
 </li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -190,7 +191,7 @@ This simplifies porting code to A64.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -204,7 +205,7 @@ This simplifies porting code to A64.</p>
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

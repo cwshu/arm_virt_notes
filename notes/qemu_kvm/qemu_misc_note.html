@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>QEMU/KVM architecture overview &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,7 +33,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="qemu-kvm-architecture-overview">
+  <section id="qemu-kvm-architecture-overview">
 <h1>QEMU/KVM architecture overview<a class="headerlink" href="#qemu-kvm-architecture-overview" title="Permalink to this headline">¶</a></h1>
 <p>it’s a note of “KVM Arch” slide in 2015 KVM forum</p>
 <ul class="simple">
@@ -43,7 +44,7 @@
 </ul>
 </li>
 </ul>
-<div class="section" id="qemu-process-model-qemu-and-guest-os">
+<section id="qemu-process-model-qemu-and-guest-os">
 <h2>Qemu process model (Qemu and Guest OS)<a class="headerlink" href="#qemu-process-model-qemu-and-guest-os" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>linux userspace process: process memory = qemu memory + guest OS physical memory</p></li>
@@ -53,8 +54,8 @@
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="event-driven-multi-threaded">
+</section>
+<section id="event-driven-multi-threaded">
 <h2>Event-driven multi-threaded<a class="headerlink" href="#event-driven-multi-threaded" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>event loop used for timer, fd, monitoring … etc</p>
@@ -72,8 +73,8 @@
 </li>
 </ul>
 <p>see <a class="reference internal" href="qemu_thread_event.html"><span class="doc">QEMU thread and event model</span></a> for detail</p>
-</div>
-<div class="section" id="host-guest-device-emulation-split">
+</section>
+<section id="host-guest-device-emulation-split">
 <h2>host/guest device emulation split<a class="headerlink" href="#host-guest-device-emulation-split" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>guest device: device model visible to guest</p></li>
@@ -99,8 +100,8 @@
 </div>
 </li>
 </ul>
-</div>
-<div class="section" id="virtio-devices">
+</section>
+<section id="virtio-devices">
 <h2>virtio devices<a class="headerlink" href="#virtio-devices" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>KVM implements virtio device models</p>
@@ -111,8 +112,8 @@
 <li><p>Red Hat contributes to Linux and Windows guestdrivers</p></li>
 <li><p>see <a class="reference internal" href="virtio.html"><span class="doc">Virtio</span></a> for detail</p></li>
 </ul>
-</div>
-<div class="section" id="vhost-in-kernel-devices">
+</section>
+<section id="vhost-in-kernel-devices">
 <h2>vhost in-kernel devices<a class="headerlink" href="#vhost-in-kernel-devices" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>vhost drivers emulate virtio devices in host kernel for better performance</p>
@@ -125,8 +126,8 @@
 <ul class="simple">
 <li><p><a class="reference external" href="http://sdytlm.blogspot.tw/2013/10/test.html">QEMU Source Code Study - 1</a></p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -182,7 +183,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -196,7 +197,7 @@
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Linux DMA &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,11 +33,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="linux-dma">
+  <section id="linux-dma">
 <h1>Linux DMA<a class="headerlink" href="#linux-dma" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="dma-controller-engine">
+<section id="dma-controller-engine">
 <h2>DMA Controller/Engine<a class="headerlink" href="#dma-controller-engine" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="source-code">
+<section id="source-code">
 <h3>source code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>include/linux/dmaengine.h</p></li>
@@ -44,8 +45,8 @@
 <li><p>include/linux/amba/pl330.h</p></li>
 <li><p>drivers/dma/pl330.c</p></li>
 </ul>
-</div>
-<div class="section" id="document">
+</section>
+<section id="document">
 <h3>document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p><a class="reference external" href="http://events.linuxfoundation.org/sites/events/files/slides/ripard-dmaengine.pdf">(maxime, 2015) An Overview of the DMAEngine Subsystem</a></p></li>
@@ -54,19 +55,19 @@
 <li><p><a class="reference external" href="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0424a/DDI0424A_dmac_pl330_r0p0_trm.pdf">ARM PL330 DMA Controller Manual</a></p></li>
 <li><p>详解 ARM 的 AMBA 设备中的 DMA 设备 PL08X 的 Linux 驱动: <a class="reference external" href="http://www.crifan.com/files/doc/docbook/dma_pl08x_analysis/release/htmls/index.html">http://www.crifan.com/files/doc/docbook/dma_pl08x_analysis/release/htmls/index.html</a></p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="dma-mapping">
+</section>
+</section>
+<section id="dma-mapping">
 <h2>DMA Mapping<a class="headerlink" href="#dma-mapping" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id1">
+<section id="id1">
 <h3>source code<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>include/linux/dma-mapping.h</p></li>
 <li><p>arch/arm/mm/dma-mapping.c: implement 4 type of dma_map_ops</p></li>
 </ul>
 <p>more: <a class="reference internal" href="dma_mapping.html"><span class="doc">DMA Mapping</span></a></p>
-</div>
-<div class="section" id="id2">
+</section>
+<section id="id2">
 <h3>document<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>(Laurent, 2014) [ELC2014] <a class="reference external" href="http://elinux.org/images/4/49/20140429-dma.pdf">Mastering the DMA and IOMMU API</a></p></li>
@@ -86,9 +87,9 @@
 </li>
 <li><p>( 2014) <a class="reference external" href="http://linuxkernelhacker.blogspot.tw/2014/07/arm-dma-mapping-explained.html">ARM Dma-mapping Explained</a></p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
           </div>
@@ -147,7 +148,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -161,7 +162,7 @@
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

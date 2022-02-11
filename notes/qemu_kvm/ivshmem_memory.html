@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Memory Usage in ivshmem &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,7 +33,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="memory-usage-in-ivshmem">
+  <section id="memory-usage-in-ivshmem">
 <h1>Memory Usage in ivshmem<a class="headerlink" href="#memory-usage-in-ivshmem" title="Permalink to this headline">¶</a></h1>
 <p>ivshmem 處理 shared memory 的原理, 簡單來說就是.</p>
 <ul class="simple">
@@ -48,7 +49,7 @@ ivshmem 這邊的操作則是將 shared memory mapping 到 guest OS 的記憶體
 </li>
 </ul>
 <p>接下來就個別講解細節.</p>
-<div class="section" id="ivshmem-cli-option">
+<section id="ivshmem-cli-option">
 <h2>ivshmem CLI option<a class="headerlink" href="#ivshmem-cli-option" title="Permalink to this headline">¶</a></h2>
 <p>ivshmem CLI option 包含 shared memory 的路徑跟大小, 這兩個資料會被傳入 IVShmemState 的 class member 當中.</p>
 <ul>
@@ -60,8 +61,8 @@ ivshmem 這邊的操作則是將 shared memory mapping 到 guest OS 的記憶體
 </li>
 <li><p>細節請參考: <a class="reference internal" href="QOM1.html#qdev-property"><span class="std std-ref">device parameters</span></a></p></li>
 </ul>
-</div>
-<div class="section" id="desugar-shm-create-memoryregion">
+</section>
+<section id="desugar-shm-create-memoryregion">
 <h2>desugar_shm(): create <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code><a class="headerlink" href="#desugar-shm-create-memoryregion" title="Permalink to this headline">¶</a></h2>
 <p>Create <code class="docutils literal notranslate"><span class="pre">TYPE_MEMORY_BACKEND_FILE</span></code> and <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> by <code class="docutils literal notranslate"><span class="pre">IVShmemState-&gt;shmobj</span></code>.
 Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> to <code class="docutils literal notranslate"><span class="pre">IVShmemState-&gt;hostmem</span></code>.</p>
@@ -75,8 +76,8 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
 </ol>
 </li>
 </ul>
-</div>
-<div class="section" id="register-memoryregion-as-pci-bar2">
+</section>
+<section id="register-memoryregion-as-pci-bar2">
 <h2>register <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> as PCI BAR2<a class="headerlink" href="#register-memoryregion-as-pci-bar2" title="Permalink to this headline">¶</a></h2>
 <p>ivshmem 將該 <code class="docutils literal notranslate"><span class="pre">MemoryRegion</span></code> 註冊成自己 PCI device 的 BAR2.</p>
 <ul class="simple">
@@ -84,8 +85,8 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
 <li><p><code class="docutils literal notranslate"><span class="pre">pci_register_bar(PCI_DEVICE(s),</span> <span class="pre">2,</span> <span class="pre">attr,</span> <span class="pre">IVShmemState-&gt;ivshmem_bar2);</span></code></p></li>
 </ul>
 <p>Then, we should dig into QEMU PCI framework.</p>
-</div>
-<div class="section" id="pci-framework">
+</section>
+<section id="pci-framework">
 <h2>PCI framework<a class="headerlink" href="#pci-framework" title="Permalink to this headline">¶</a></h2>
 <p>QEMU PCI framework 會將所有 PCI device 的 BAR 加入到 <code class="docutils literal notranslate"><span class="pre">system_memory</span></code> 當中, 進行 guest OS memory 的管理.</p>
 <ul class="simple">
@@ -104,8 +105,8 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="details">
+</section>
+<section id="details">
 <h2>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic">
 <li><p>TYPE_MEMORY_BACKEND_FILE:</p>
@@ -159,8 +160,8 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
 <span class="n">MemoryRegion</span> <span class="s1">&#39;pci&#39;</span><span class="p">:</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">0</span><span class="p">,</span> <span class="n">is_ram</span> <span class="mi">0</span><span class="p">,</span> <span class="n">is_ro</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hwaddr</span> <span class="mi">0</span><span class="p">,</span> <span class="n">callback</span> <span class="n">addr</span> <span class="mh">0x555555ee6780</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -216,7 +217,7 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -230,7 +231,7 @@ Assign the <code class="docutils literal notranslate"><span class="pre">MemoryRe
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

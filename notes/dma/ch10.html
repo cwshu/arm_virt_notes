@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Ch10 Interrupt Handling &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,10 +33,10 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="ch10-interrupt-handling">
+  <section id="ch10-interrupt-handling">
 <h1>Ch10 Interrupt Handling<a class="headerlink" href="#ch10-interrupt-handling" title="Permalink to this headline">¶</a></h1>
 <p>More: <a class="reference internal" href="ch10_more.html"><span class="doc">Interrupt Handling More</span></a></p>
-<div class="section" id="installing-an-interrupt-handler">
+<section id="installing-an-interrupt-handler">
 <h2>Installing an Interrupt Handler<a class="headerlink" href="#installing-an-interrupt-handler" title="Permalink to this headline">¶</a></h2>
 <p>Interrupt handler is similar to userspace signal handler.</p>
 <p>Driver install and uninstall interrupt handler by <code class="docutils literal notranslate"><span class="pre">request_irq()</span></code> and <code class="docutils literal notranslate"><span class="pre">free_irq()</span></code>. (<code class="docutils literal notranslate"><span class="pre">include/linux/interrupt.h</span></code>)</p>
@@ -66,8 +67,8 @@ For example, network drivers usually use <code class="docutils literal notransla
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="implementing-a-handler">
+</section>
+<section id="implementing-a-handler">
 <h2>Implementing a Handler<a class="headerlink" href="#implementing-a-handler" title="Permalink to this headline">¶</a></h2>
 <p>Interrupt handler</p>
 <ul class="simple">
@@ -95,7 +96,7 @@ For example, network drivers usually use <code class="docutils literal notransla
 </li>
 <li><p>return value: whether there was actually an interrupt to handle. <code class="docutils literal notranslate"><span class="pre">IRQ_HANDLED</span></code> or <code class="docutils literal notranslate"><span class="pre">IRQ_NONE</span></code></p></li>
 </ul>
-<div class="section" id="enable-and-disable-interrupt">
+<section id="enable-and-disable-interrupt">
 <h3>Enable and Disable Interrupt<a class="headerlink" href="#enable-and-disable-interrupt" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p>disable single interrupt</p>
@@ -128,9 +129,9 @@ It may deadlock if the thread calling <code class="docutils literal notranslate"
 </div>
 </li>
 </ul>
-</div>
-</div>
-<div class="section" id="top-and-bottom-halves">
+</section>
+</section>
+<section id="top-and-bottom-halves">
 <h2>Top and Bottom Halves<a class="headerlink" href="#top-and-bottom-halves" title="Permalink to this headline">¶</a></h2>
 <p>workqueue</p>
 <ul class="simple">
@@ -141,14 +142,14 @@ work 不使用 user context, 而用自己獨立的 workqueue context, 所以不�
 Linux 上 kthread 之中的 kworker 就是 workqueue 裡的 worker thread.</p>
 <p>跟 multi-thread 的程式之中, 把運算 offload 到 thread pool 上執行的概念相似. 只是 worker pool 跟 thread pool allocate cpu 的 policy 不同.
 (e.g. http server 收到 connection 後, 用 condition variable 叫醒 thread 幫忙 handle request.)</p>
-</div>
-<div class="section" id="interrupt-sharing">
+</section>
+<section id="interrupt-sharing">
 <h2>Interrupt Sharing<a class="headerlink" href="#interrupt-sharing" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="interrupt-driven-i-o">
+</section>
+<section id="interrupt-driven-i-o">
 <h2>Interrupt-Driven I/O<a class="headerlink" href="#interrupt-driven-i-o" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -207,7 +208,7 @@ Linux 上 kthread 之中的 kworker 就是 workqueue 裡的 worker thread.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -221,7 +222,7 @@ Linux 上 kthread 之中的 kworker 就是 workqueue 裡的 worker thread.</p>
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

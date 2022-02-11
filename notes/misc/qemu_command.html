@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>收集一些 ARM guest 時使用的 QEMU Commands &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -31,7 +32,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="arm-guest-qemu-commands">
+  <section id="arm-guest-qemu-commands">
 <h1>收集一些 ARM guest 時使用的 QEMU Commands<a class="headerlink" href="#arm-guest-qemu-commands" title="Permalink to this headline">¶</a></h1>
 <p>我用 ubuntu server 在 odroid 的測試:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">qemu</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">aarch64</span> \
@@ -109,7 +110,7 @@
     <span class="o">-</span><span class="n">device</span> <span class="n">virtio</span><span class="o">-</span><span class="n">net</span><span class="o">-</span><span class="n">device</span><span class="p">,</span><span class="n">netdev</span><span class="o">=</span><span class="n">net0</span><span class="p">,</span><span class="n">mac</span><span class="o">=</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span> \
 </pre></div>
 </div>
-<div class="section" id="note">
+<section id="note">
 <h2>Note<a class="headerlink" href="#note" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
 <li><p>ARM guest 很需要 <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">virt</span> <span class="pre">-bios</span> <span class="pre">QEMU_EFI.fd</span></code>, <code class="docutils literal notranslate"><span class="pre">QEMU_EFI.fd</span></code> 來自 Linaro</p></li>
@@ -121,8 +122,8 @@
 <li><p>cdrom 用 virtio-scsi-device + scsi-cd, disk(img, qcow2) 用 virtio-blk-device</p></li>
 <li><p>virtio-net-device</p></li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -170,7 +171,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -184,7 +185,7 @@
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

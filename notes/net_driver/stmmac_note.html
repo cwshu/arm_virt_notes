@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>STMicro ethernet driver note &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,12 +33,12 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="stmicro-ethernet-driver-note">
+  <section id="stmicro-ethernet-driver-note">
 <h1>STMicro ethernet driver note<a class="headerlink" href="#stmicro-ethernet-driver-note" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference external" href="http://elixir.free-electrons.com/linux/latest/source/Documentation/networking/stmmac.txt">Linux Kernel - Documentation/networking/stmmac.txt</a></p></li>
 </ul>
-<div class="section" id="source-file-and-config">
+<section id="source-file-and-config">
 <h2>Source File and Config<a class="headerlink" href="#source-file-and-config" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">stmmac</span></code> source code files introduction.</p>
 <p>interface to upper layer:</p>
@@ -82,8 +83,8 @@
 <li><p>am_eth_reg.h, mmc.h, stmmac_ptp.h</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="data-structure">
+</section>
+<section id="data-structure">
 <h2>Data Structure<a class="headerlink" href="#data-structure" title="Permalink to this headline">¶</a></h2>
 <p>4 ops in <code class="docutils literal notranslate"><span class="pre">mac_device_info</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">mac_device_info</span>
@@ -104,10 +105,10 @@
 <span class="n">struct</span> <span class="n">plat_stmmacenet_data</span><span class="o">*</span> <span class="n">plat</span><span class="p">;</span> <span class="o">//</span> <span class="n">struct</span> <span class="n">device</span><span class="o">-&gt;</span><span class="n">platform_data</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="control-flow">
+</section>
+<section id="control-flow">
 <h2>Control Flow<a class="headerlink" href="#control-flow" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="stmmac-driver-setting-mac-address">
+<section id="stmmac-driver-setting-mac-address">
 <h3>stmmac driver setting mac address<a class="headerlink" href="#stmmac-driver-setting-mac-address" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="ow">in</span> <span class="n">stmmac_main</span><span class="o">.</span><span class="n">c</span>
 <span class="n">stmmac_hw_setup</span><span class="p">()</span>
@@ -115,8 +116,8 @@
 <span class="o">=&gt;</span> <span class="n">stmmac_set_mac_addr</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="stmmac-mmio-region">
+</section>
+<section id="stmmac-mmio-region">
 <h3>stmmac MMIO region<a class="headerlink" href="#stmmac-mmio-region" title="Permalink to this headline">¶</a></h3>
 <p>以下以 <code class="docutils literal notranslate"><span class="pre">stmmac_set_mac_addr()</span></code> 使用到的 MMIO region 為例子</p>
 <p>1. MMIO region 透過 <code class="docutils literal notranslate"><span class="pre">platform_get_resource()</span></code> 得到, 並透過 <code class="docutils literal notranslate"><span class="pre">ioremap()</span></code> 轉成 virtual address 給 driver 使用.</p>
@@ -152,8 +153,8 @@
 <span class="n">GMAC_ADDR_LOW</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>  <span class="o">=</span> <span class="mh">0x44</span> <span class="o">+</span> <span class="n">reg</span><span class="o">*</span><span class="mi">8</span> <span class="k">if</span> <span class="n">reg</span> <span class="o">&lt;=</span> <span class="mi">15</span><span class="p">;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="net-device-ops-napi-transfer-and-receive">
+</section>
+<section id="net-device-ops-napi-transfer-and-receive">
 <h3>net_device_ops/NAPI transfer and receive<a class="headerlink" href="#net-device-ops-napi-transfer-and-receive" title="Permalink to this headline">¶</a></h3>
 <p>driver transfer data to device.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ndo_start_xmit()</span></code></p>
@@ -183,8 +184,8 @@ skb_frag_dma_map(): dma_map_page() from ``sk_buff&#39;s`` page.
 </ol>
 <p>driver receive data from device.</p>
 <p><code class="docutils literal notranslate"><span class="pre">stmmac_poll()</span></code></p>
-</div>
-<div class="section" id="other-net-device-ops">
+</section>
+<section id="other-net-device-ops">
 <h3>other net_device_ops<a class="headerlink" href="#other-net-device-ops" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>ndo_ioctl</p>
@@ -212,11 +213,11 @@ skb_frag_dma_map(): dma_map_page() from ``sk_buff&#39;s`` page.
 </ul>
 </li>
 </ul>
-</div>
-</div>
-<div class="section" id="other-info">
+</section>
+</section>
+<section id="other-info">
 <h2>Other Info<a class="headerlink" href="#other-info" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="platform-bus-abstraction">
+<section id="platform-bus-abstraction">
 <h3>platform bus abstraction<a class="headerlink" href="#platform-bus-abstraction" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">stmmac_platform.c</span></code> implement a platform driver <code class="docutils literal notranslate"><span class="pre">stmmac_pltfr_driver</span></code>.
 This driver is a wrapper of <code class="docutils literal notranslate"><span class="pre">stmmac_driver</span></code>.</p>
@@ -246,8 +247,8 @@ This driver is a wrapper of <code class="docutils literal notranslate"><span cla
 </ul>
 </li>
 </ul>
-</div>
-<div class="section" id="dwmac-meson-c">
+</section>
+<section id="dwmac-meson-c">
 <h3>dwmac-meson.c<a class="headerlink" href="#dwmac-meson-c" title="Permalink to this headline">¶</a></h3>
 <p>implements 2 functions <code class="docutils literal notranslate"><span class="pre">setup()</span></code> and <code class="docutils literal notranslate"><span class="pre">fix_mac_speed()</span></code></p>
 <p>setup functions to device’s platform_data <code class="docutils literal notranslate"><span class="pre">plat_stmmacenet_data</span></code>:</p>
@@ -273,8 +274,8 @@ This driver is a wrapper of <code class="docutils literal notranslate"><span cla
     <span class="n">plat_dat</span><span class="o">-&gt;</span><span class="n">setup</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="dwmac-dma">
+</section>
+<section id="dwmac-dma">
 <h3>dwmac DMA<a class="headerlink" href="#dwmac-dma" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>source codes: dwmac_lib.c, dwmac_dma.h</p></li>
@@ -295,9 +296,9 @@ This driver is a wrapper of <code class="docutils literal notranslate"><span cla
 </ul>
 </li>
 </ul>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
           </div>
@@ -363,7 +364,7 @@ This driver is a wrapper of <code class="docutils literal notranslate"><span cla
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -377,7 +378,7 @@ This driver is a wrapper of <code class="docutils literal notranslate"><span cla
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

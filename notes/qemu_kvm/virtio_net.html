@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>Virtio Network &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,13 +33,13 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="virtio-network">
+  <section id="virtio-network">
 <h1>Virtio Network<a class="headerlink" href="#virtio-network" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference internal" href="virtio.html"><span class="doc">Virtio note</span></a></p>
-<div class="section" id="virtio-net-qemu-device">
+<section id="virtio-net-qemu-device">
 <h2>virtio-net qemu device<a class="headerlink" href="#virtio-net-qemu-device" title="Permalink to this headline">¶</a></h2>
 <p>from QEMU 2.9 source code.</p>
-<div class="section" id="mmio-and-virtqueue-kick">
+<section id="mmio-and-virtqueue-kick">
 <h3>MMIO and virtqueue_kick()<a class="headerlink" href="#mmio-and-virtqueue-kick" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">virtqueue_kick()</span></code> is a MMIO operation, and it triggers virtio-device to output data from driver.
 Output interface is <code class="docutils literal notranslate"><span class="pre">VirtQueue-&gt;handle_output()</span></code> or <code class="docutils literal notranslate"><span class="pre">VirtQueue-&gt;handle_aio_output()</span></code>.
@@ -65,8 +66,8 @@ device handles <code class="docutils literal notranslate"><span class="pre">virt
 MMIO value assigns which virtqueue should be used.
 each virtqueue has it’s <code class="docutils literal notranslate"><span class="pre">handle_output()</span></code> or <code class="docutils literal notranslate"><span class="pre">handle_aio_output()</span></code> callback.</p>
 <p>virtio device can use <code class="docutils literal notranslate"><span class="pre">virtio_add_queue()</span></code> to set <code class="docutils literal notranslate"><span class="pre">VirtQueue-&gt;handle_output</span></code>, and use <code class="docutils literal notranslate"><span class="pre">virtio_queue_aio_set_host_notifier_handler()</span></code> to set <code class="docutils literal notranslate"><span class="pre">VirtQueue-&gt;handle_aio_output</span></code>.</p>
-</div>
-<div class="section" id="virtio-tx">
+</section>
+<section id="virtio-tx">
 <h3>Virtio TX<a class="headerlink" href="#virtio-tx" title="Permalink to this headline">¶</a></h3>
 <p>virtio-net handles TX by timer or QEMU BH. We use BH as example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">virtio_net_add_queue</span><span class="p">(</span><span class="n">VirtIONet</span> <span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="nb">int</span> <span class="n">index</span><span class="p">){</span>
@@ -99,8 +100,8 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 <li><p>completion interrupt</p></li>
 <li><p>net_hdr_swap, host_hdr_len</p></li>
 </ul>
-</div>
-<div class="section" id="virtio-api">
+</section>
+<section id="virtio-api">
 <h3>Virtio API<a class="headerlink" href="#virtio-api" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TYPE_VIRTIO_NET</span> <span class="o">=&gt;</span> <span class="n">TYPE_VIRTIO_DEVICE</span> <span class="o">=&gt;</span> <span class="n">TYPE_DEVICE</span>
 
@@ -246,7 +247,7 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 <span class="n">vring_set_avail_event</span><span class="p">()</span>
 </pre></div>
 </div>
-<div class="section" id="virtio-access-api">
+<section id="virtio-access-api">
 <h4>virtio-access API<a class="headerlink" href="#virtio-access-api" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">virtio_tswap&lt;size&gt;s()</span></code> 使用 <code class="docutils literal notranslate"><span class="pre">bswap()</span></code> API 轉換 endianness</p></li>
@@ -261,16 +262,16 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 <span class="n">bswap</span><span class="o">.</span><span class="n">h</span><span class="p">:</span> <span class="n">進行</span> <span class="n">big</span><span class="o">-</span><span class="n">endianness</span> <span class="n">跟</span> <span class="n">little</span><span class="o">-</span><span class="n">endianness</span> <span class="n">之間的轉換</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="address-space-apis">
+</section>
+<section id="address-space-apis">
 <h4>address_space APIs<a class="headerlink" href="#address-space-apis" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">address_space_cache_init</span><span class="p">()</span>
 <span class="n">address_space_read_cached</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="iov-series-apis">
+</section>
+</section>
+<section id="iov-series-apis">
 <h3>iov series APIs<a class="headerlink" href="#iov-series-apis" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p>iov_copy():</p>
@@ -298,12 +299,12 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 </ul>
 </li>
 </ul>
-</div>
-</div>
-<div class="section" id="virtio-net-kernel-driver">
+</section>
+</section>
+<section id="virtio-net-kernel-driver">
 <h2>virtio-net kernel driver<a class="headerlink" href="#virtio-net-kernel-driver" title="Permalink to this headline">¶</a></h2>
 <p>from Linux Kernel 3.14.</p>
-<div class="section" id="virtqueue-vring-and-virtio-device">
+<section id="virtqueue-vring-and-virtio-device">
 <h3>virtqueue, vring, and virtio_device<a class="headerlink" href="#virtqueue-vring-and-virtio-device" title="Permalink to this headline">¶</a></h3>
 <p>source code:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">include</span><span class="o">/</span><span class="n">uapi</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">virtio_ring</span><span class="o">.</span><span class="n">h</span><span class="p">:</span> <span class="o">//</span> <span class="n">struct</span> <span class="n">vring</span>
@@ -331,8 +332,8 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 <span class="n">vring_new_virtqueue</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="nb">bool</span> <span class="p">(</span><span class="o">*</span><span class="n">notify</span><span class="p">)(</span><span class="n">struct</span> <span class="n">virtqueue</span> <span class="o">*</span><span class="p">),</span> <span class="o">...</span> <span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="methods-of-virtqueue-and-vring">
+</section>
+<section id="methods-of-virtqueue-and-vring">
 <h3>methods of virtqueue and vring<a class="headerlink" href="#methods-of-virtqueue-and-vring" title="Permalink to this headline">¶</a></h3>
 <p>virtqueue methods:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtqueue_add_</span><span class="o">*</span><span class="p">()</span>
@@ -358,8 +359,8 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
   <span class="n">iowrite16</span><span class="p">(</span><span class="n">vq</span><span class="o">-&gt;</span><span class="n">index</span><span class="p">,</span> <span class="n">vp_dev</span><span class="o">-&gt;</span><span class="n">ioaddr</span> <span class="o">+</span> <span class="n">VIRTIO_PCI_QUEUE_NOTIFY</span><span class="p">);</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="virtio-net">
+</section>
+<section id="virtio-net">
 <h3>virtio net<a class="headerlink" href="#virtio-net" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">virtnet_info</span> <span class="p">{</span>
     <span class="n">virtio_device</span> <span class="o">*</span><span class="n">vdev</span><span class="p">;</span>
@@ -428,9 +429,9 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
 <span class="o">//</span> <span class="n">INIT_DELAYED_WORK</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vi</span><span class="o">-&gt;</span><span class="n">refill</span><span class="p">,</span> <span class="n">refill_work</span><span class="p">);</span> <span class="o">//</span> <span class="n">schedule_delayed_work</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
           </div>
@@ -498,7 +499,7 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -512,7 +513,7 @@ each virtqueue has it’s <code class="docutils literal notranslate"><span class
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>QEMU e1000 Device Emulation &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,9 +33,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="qemu-e1000-device-emulation">
+  <section id="qemu-e1000-device-emulation">
 <h1>QEMU e1000 Device Emulation<a class="headerlink" href="#qemu-e1000-device-emulation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="e1000-keynote">
+<section id="e1000-keynote">
 <h2>e1000 keynote<a class="headerlink" href="#e1000-keynote" title="Permalink to this headline">¶</a></h2>
 <p>Interface between QEMU e1000 device and other modules.</p>
 <ul class="simple">
@@ -70,15 +71,15 @@ Slirp backend recieve packets by <code class="docutils literal notranslate"><spa
 <ul class="simple">
 <li><p><a class="reference external" href="https://pdos.csail.mit.edu/6.828/2014/readings/hardware/8254x_GBe_SDM.pdf">e1000 datasheet</a></p></li>
 </ul>
-</div>
-<div class="section" id="e1000-tx">
+</section>
+<section id="e1000-tx">
 <h2>e1000 TX<a class="headerlink" href="#e1000-tx" title="Permalink to this headline">¶</a></h2>
 <p>Whenever guest driver accesses <code class="docutils literal notranslate"><span class="pre">TCTL</span></code> and <code class="docutils literal notranslate"><span class="pre">TDT</span></code> HW registers, it will trigger e1000 device to send packet.
 QEMU e1000 device copy packets from TX Ring at guest memory, it copies data by DMA emulation.
 Then, QEMU send packet by network backend API.
 After sending packet, QEMU send completion interrupt to notify guest OS by KVM virtual interrupt.</p>
 <p>QEMU e1000 device implements <code class="docutils literal notranslate"><span class="pre">start_xmit()</span></code> to send packets.</p>
-<div class="section" id="e1000-start-xmit-dataflow">
+<section id="e1000-start-xmit-dataflow">
 <h3>e1000 start_xmit() dataflow<a class="headerlink" href="#e1000-start-xmit-dataflow" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>DMA emulation: use <code class="docutils literal notranslate"><span class="pre">pci_dma_read()</span></code> to copy data from TX Ring to <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">e1000_tx*</span> <span class="pre">tp</span></code>.</p></li>
@@ -115,8 +116,8 @@ Address translation from GPA to HVA is processed at translation from AS to MR, i
     <span class="mi">0000000000000000</span><span class="o">-</span><span class="n">ffffffffffffffff</span> <span class="p">(</span><span class="n">prio</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">/</span><span class="n">o</span><span class="p">):</span> <span class="n">alias</span> <span class="n">bus</span> <span class="n">master</span> <span class="nd">@system</span> <span class="mi">0000000000000000</span><span class="o">-</span><span class="n">ffffffffffffffff</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="e1000-sending-completion-interrupt">
+</section>
+<section id="e1000-sending-completion-interrupt">
 <h3>e1000 sending completion interrupt<a class="headerlink" href="#e1000-sending-completion-interrupt" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">start_xmit()</span></code> send packet by <code class="docutils literal notranslate"><span class="pre">process_tx_desc()</span></code> and send completion interrupt by <code class="docutils literal notranslate"><span class="pre">set_ics()</span></code></p>
 <p><code class="docutils literal notranslate"><span class="pre">set_ics()</span></code> send VIRQ by <code class="docutils literal notranslate"><span class="pre">pci_set_irq()</span></code>:</p>
@@ -182,9 +183,9 @@ Address translation from GPA to HVA is processed at translation from AS to MR, i
    <span class="o">=&gt;</span> <span class="n">sysbus_connect_irq</span><span class="p">(</span><span class="n">SYS_BUS_DEVICE</span><span class="p">(</span><span class="n">dev</span><span class="p">),</span> <span class="n">i</span><span class="p">,</span> <span class="n">pic</span><span class="p">[</span><span class="n">irq</span> <span class="o">+</span> <span class="n">i</span><span class="p">]);</span>
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="misc">
+</section>
+</section>
+<section id="misc">
 <h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">qemu_irq</span></code> misc:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">kvm_i8259_init</span><span class="p">(</span><span class="n">ISABus</span> <span class="o">*</span><span class="n">bus</span><span class="p">)</span>
@@ -202,8 +203,8 @@ Address translation from GPA to HVA is processed at translation from AS to MR, i
 <span class="o">//</span>   <span class="n">qdev_init_gpio_in</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">kvm_ioapic_set_irq</span><span class="p">,</span> <span class="n">IOAPIC_NUM_PINS</span><span class="p">);</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -261,7 +262,7 @@ Address translation from GPA to HVA is processed at translation from AS to MR, i
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -275,7 +276,7 @@ Address translation from GPA to HVA is processed at translation from AS to MR, i
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

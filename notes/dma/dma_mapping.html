@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
     <title>DMA Mapping &#8212; ARM SoC Device Assignment Notes  documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
@@ -32,12 +33,12 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="dma-mapping">
+  <section id="dma-mapping">
 <h1>DMA Mapping<a class="headerlink" href="#dma-mapping" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
 <li><p>[ELC2014] <a class="reference external" href="http://elinux.org/images/4/49/20140429-dma.pdf">Mastering the DMA and IOMMU API</a></p></li>
 </ul>
-<div class="section" id="source-code">
+<section id="source-code">
 <h2>Source Code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
 <ul>
 <li><p>headers:</p>
@@ -62,8 +63,8 @@
 </div>
 </li>
 </ul>
-</div>
-<div class="section" id="intro">
+</section>
+<section id="intro">
 <h2>Intro<a class="headerlink" href="#intro" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
 <li><p>DMA mapping API abstraction</p>
@@ -84,8 +85,8 @@ It use <code class="docutils literal notranslate"><span class="pre">get_dma_op()
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">map_*()</span></code> op do cache invalidate and clean operations</p></li>
 </ol>
-</div>
-<div class="section" id="dma-mapping-api">
+</section>
+<section id="dma-mapping-api">
 <h2>DMA mapping API<a class="headerlink" href="#dma-mapping-api" title="Permalink to this headline">¶</a></h2>
 <p>DMA mapping API/ops</p>
 <ul class="simple">
@@ -134,8 +135,8 @@ It use <code class="docutils literal notranslate"><span class="pre">get_dma_op()
 <span class="o">-</span> <span class="n">dma_get_sgtable</span><span class="p">()</span>       <span class="o">=&gt;</span> <span class="n">ops</span><span class="o">-&gt;</span><span class="n">get_sgtable</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="dma-map-internal">
+</section>
+<section id="dma-map-internal">
 <h2>DMA map internal<a class="headerlink" href="#dma-map-internal" title="Permalink to this headline">¶</a></h2>
 <p>目前猜測:</p>
 <blockquote>
@@ -155,7 +156,7 @@ It use <code class="docutils literal notranslate"><span class="pre">get_dma_op()
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">arm_dma_map_page()</span></code> calls <code class="docutils literal notranslate"><span class="pre">outer_clean_range()</span></code> or <code class="docutils literal notranslate"><span class="pre">outer_inv_range()</span></code>, depend on direction of DMA.</p>
-<div class="section" id="outercache">
+<section id="outercache">
 <h3>outercache<a class="headerlink" href="#outercache" title="Permalink to this headline">¶</a></h3>
 <p>source:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">arch</span><span class="o">/</span><span class="n">arm</span><span class="o">/</span><span class="n">include</span><span class="o">/</span><span class="n">asm</span><span class="o">/</span><span class="n">outercache</span><span class="o">.</span><span class="n">h</span>
@@ -185,9 +186,9 @@ tauros2_inv_pa()      : __asm__(&quot;mcr p15, 1, %0, c7, c7, 3&quot; : : &quot;
 tauros2_clean_inv_pa(): __asm__(&quot;mcr p15, 1, %0, c7, c15, 3&quot; : : &quot;r&quot; (addr));
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="dma-alloc-internal">
+</section>
+</section>
+<section id="dma-alloc-internal">
 <h2>DMA alloc internal<a class="headerlink" href="#dma-alloc-internal" title="Permalink to this headline">¶</a></h2>
 <p>這邊 trace 的是 <code class="docutils literal notranslate"><span class="pre">arm_dma_ops</span></code> 的 <code class="docutils literal notranslate"><span class="pre">alloc()</span></code> 函式實作.</p>
 <p>trace:</p>
@@ -219,8 +220,8 @@ tauros2_clean_inv_pa(): __asm__(&quot;mcr p15, 1, %0, c7, c15, 3&quot; : : &quot
 <span class="o">=&gt;</span> <span class="o">*</span><span class="n">handle</span> <span class="o">=</span> <span class="n">__iommu_create_mapping</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">page</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="misc">
+</section>
+<section id="misc">
 <h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h2>
 <p>programming technique for op abstraction:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="mf">1.</span> <span class="n">dma</span> <span class="n">op</span> <span class="n">的軟體包裝方式</span>
@@ -268,8 +269,8 @@ static inline void * pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
 }
 </pre></div>
 </div>
-</div>
-<div class="section" id="other-reference">
+</section>
+<section id="other-reference">
 <h2>other reference<a class="headerlink" href="#other-reference" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>CMA allocator: <a class="reference external" href="https://events.linuxfoundation.org/images/stories/pdf/lceu2012_nazarwicz.pdf">https://events.linuxfoundation.org/images/stories/pdf/lceu2012_nazarwicz.pdf</a></p></li>
@@ -279,8 +280,8 @@ static inline void * pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
 </ul>
 </li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -339,7 +340,7 @@ static inline void * pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -353,7 +354,7 @@ static inline void * pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
       &copy;2017, susu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
